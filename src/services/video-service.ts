@@ -1,0 +1,92 @@
+import {
+  initDatabase,
+  loadFromCache,
+  saveToCache,
+} from "../database-adapter.js";
+import { loadSubscriptions } from "../youtube.js";
+import type { VideoItem, Subscription } from "../types.js";
+
+export interface VideoServiceOptions {
+  useCache: boolean;
+  maxChannels?: number;
+  includeShorts: boolean;
+  onProgress?: (current: number, total: number) => void;
+  onStatusChange?: (status: string) => void;
+}
+
+export interface VideoServiceResult {
+  videos: VideoItem[];
+  subscriptions: Subscription[];
+}
+
+export async function fetchVideos(
+  options: VideoServiceOptions
+): Promise<VideoServiceResult> {
+  const { useCache, maxChannels, includeShorts, onProgress, onStatusChange } =
+    options;
+
+  onStatusChange?.("Loading subscriptions...");
+  let subs = await loadSubscriptions();
+
+  if (maxChannels) {
+    subs = subs.slice(0, maxChannels);
+  }
+
+  let allVideos: VideoItem[] = [];
+  const db = await initDatabase();
+
+  if (useCache) {
+    onStatusChange?.("Checking cache...");
+    allVideos = loadFromCache(db);
+  }
+
+  if (allVideos.length === 0) {
+    onStatusChange?.("Fetching videos from RSS feeds...");
+    onProgress?.(0, subs.length);
+
+    // Fetch in batches and update progress
+    const batchSize = 50;
+    for (let i = 0; i < subs.length; i += batchSize) {
+      const batch = subs.slice(i, i + batchSize);
+      onProgress?.(i, subs.length);
+
+      const promises = batch.map((sub) =>
+        import("../youtube.js").then(({ fetchRSSFeed }) =>
+          fetchRSSFeed(sub.snippet.channelId, sub.snippet.title)
+        )
+      );
+
+      const results = await Promise.allSettled(promises);
+
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          allVideos.push(...result.value);
+        }
+      }
+
+      // Small delay between batches
+      if (i + batchSize < subs.length) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+
+    onProgress?.(subs.length, subs.length);
+
+    if (useCache) {
+      onStatusChange?.("Saving to cache...");
+      saveToCache(db, allVideos);
+    }
+  }
+
+  // Filter shorts if needed
+  if (!includeShorts) {
+    allVideos = allVideos.filter((video) => !video.isShort);
+  }
+
+  // Sort by published date (oldest first - latest videos at bottom)
+  allVideos.sort((a, b) => a.published.getTime() - b.published.getTime());
+
+  db.close();
+
+  return { videos: allVideos, subscriptions: subs };
+}
