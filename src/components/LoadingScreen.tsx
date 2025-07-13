@@ -1,6 +1,5 @@
-import React from 'react';
-import { Box, Text, useStdout } from 'ink';
-import Spinner from 'ink-spinner';
+import { Box, Text, useStdout } from "ink";
+import Spinner from "ink-spinner";
 
 interface LoadingScreenProps {
   text: string;
@@ -10,29 +9,35 @@ interface LoadingScreenProps {
 export function LoadingScreen({ text, progress }: LoadingScreenProps) {
   const { stdout } = useStdout();
   const height = stdout?.rows || 24;
-  
+
   return (
-    <Box 
-      height={height} 
-      justifyContent="center" 
-      alignItems="center" 
+    <Box
+      height={height}
+      justifyContent="center"
+      alignItems="center"
       flexDirection="column"
     >
       <Box marginBottom={2}>
-        <Text color="cyan" bold>📺 YouTube Subscription CLI</Text>
+        <Text color="cyan" bold>
+          📺 YouTube Subscription CLI
+        </Text>
       </Box>
-      
+
       {progress && progress.total > 0 ? (
         <Box flexDirection="column" alignItems="center">
           <Text color="cyan">{text}</Text>
           <Box marginTop={1}>
             <Text color="green">
-              [{progress.current}/{progress.total}] {Math.round((progress.current / progress.total) * 100)}%
+              [{progress.current}/{progress.total}]{" "}
+              {Math.round((progress.current / progress.total) * 100)}%
             </Text>
           </Box>
           <Box marginTop={1} width={50}>
             <Text color="gray">
-              {'█'.repeat(Math.floor((progress.current / progress.total) * 50))}{'░'.repeat(50 - Math.floor((progress.current / progress.total) * 50))}
+              {"█".repeat(Math.floor((progress.current / progress.total) * 50))}
+              {"░".repeat(
+                50 - Math.floor((progress.current / progress.total) * 50)
+              )}
             </Text>
           </Box>
         </Box>
@@ -44,7 +49,7 @@ export function LoadingScreen({ text, progress }: LoadingScreenProps) {
           <Text> {text}</Text>
         </Box>
       )}
-      
+
       <Box marginTop={2}>
         <Text color="gray">Please wait while we fetch your videos...</Text>
       </Box>

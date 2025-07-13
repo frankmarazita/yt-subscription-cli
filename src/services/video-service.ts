@@ -1,15 +1,8 @@
-import {
-  initDatabase,
-  loadFromCache,
-  saveToCache,
-} from "../database-adapter.js";
-import { loadSubscriptions } from "../youtube.js";
-import type { VideoItem, Subscription } from "../types.js";
+import { initDatabase, loadFromCache, saveToCache } from "../database-adapter";
+import { loadSubscriptions } from "../youtube";
+import type { VideoItem, Subscription } from "../types";
 
 export interface VideoServiceOptions {
-  useCache: boolean;
-  maxChannels?: number;
-  includeShorts: boolean;
   onProgress?: (current: number, total: number) => void;
   onStatusChange?: (status: string) => void;
 }
@@ -22,23 +15,16 @@ export interface VideoServiceResult {
 export async function fetchVideos(
   options: VideoServiceOptions
 ): Promise<VideoServiceResult> {
-  const { useCache, maxChannels, includeShorts, onProgress, onStatusChange } =
-    options;
+  const { onProgress, onStatusChange } = options;
 
   onStatusChange?.("Loading subscriptions...");
   let subs = await loadSubscriptions();
 
-  if (maxChannels) {
-    subs = subs.slice(0, maxChannels);
-  }
-
   let allVideos: VideoItem[] = [];
   const db = await initDatabase();
 
-  if (useCache) {
-    onStatusChange?.("Checking cache...");
-    allVideos = loadFromCache(db);
-  }
+  onStatusChange?.("Checking cache...");
+  allVideos = loadFromCache(db);
 
   if (allVideos.length === 0) {
     onStatusChange?.("Fetching videos from RSS feeds...");
@@ -72,16 +58,12 @@ export async function fetchVideos(
 
     onProgress?.(subs.length, subs.length);
 
-    if (useCache) {
-      onStatusChange?.("Saving to cache...");
-      saveToCache(db, allVideos);
-    }
+    onStatusChange?.("Saving to cache...");
+    saveToCache(db, allVideos);
   }
 
-  // Filter shorts if needed
-  if (!includeShorts) {
-    allVideos = allVideos.filter((video) => !video.isShort);
-  }
+  // Filter shorts
+  allVideos = allVideos.filter((video) => !video.isShort);
 
   // Sort by published date (oldest first - latest videos at bottom)
   allVideos.sort((a, b) => a.published.getTime() - b.published.getTime());

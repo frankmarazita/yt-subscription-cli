@@ -1,6 +1,6 @@
 import { parseString } from "xml2js";
 import { readFile } from "fs/promises";
-import type { VideoItem, Subscription } from "./types.js";
+import type { VideoItem, Subscription } from "./types";
 
 export async function loadSubscriptions(): Promise<Subscription[]> {
   try {

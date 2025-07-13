@@ -1,15 +1,14 @@
-import React from 'react';
-import { Box, Text, useStdout } from 'ink';
-import { exec } from 'child_process';
-import { VideoList } from './VideoList.js';
-import { SimpleVideoList } from './SimpleVideoList.js';
-import { LoadingScreen } from './LoadingScreen.js';
-import { useVideoData } from '../hooks/useVideoData.js';
-import type { AppProps, VideoItem } from '../types.js';
+import { Box, Text, useStdout } from "ink";
+import { exec } from "child_process";
+import { VideoList } from "./VideoList";
+import { SimpleVideoList } from "./SimpleVideoList";
+import { LoadingScreen } from "./LoadingScreen";
+import { useVideoData } from "../hooks/useVideoData";
+import type { VideoItem } from "../types";
 
-export function App({ useCache, maxChannels, includeShorts }: AppProps) {
+export function App() {
   const { stdout } = useStdout();
-  
+
   const {
     videos,
     loading,
@@ -19,17 +18,18 @@ export function App({ useCache, maxChannels, includeShorts }: AppProps) {
     cacheAge,
     refresh,
     refreshProgress,
-    refreshStatus
+    refreshStatus,
   } = useVideoData({
-    useCache,
-    maxChannels,
-    includeShorts,
-    autoRefreshInterval: 5 * 60 * 1000 // 5 minutes
+    autoRefreshInterval: 5 * 60 * 1000, // 5 minutes
   });
 
   const openVideoInBrowser = (url: string) => {
-    const command = process.platform === 'darwin' ? 'open' : 
-                   process.platform === 'win32' ? 'start' : 'xdg-open';
+    const command =
+      process.platform === "darwin"
+        ? "open"
+        : process.platform === "win32"
+          ? "start"
+          : "xdg-open";
     exec(`${command} "${url}"`);
   };
 
@@ -44,14 +44,19 @@ export function App({ useCache, maxChannels, includeShorts }: AppProps) {
   const handleRefresh = async () => {
     await refresh();
   };
-  
-  const hasRawMode = process.stdin.isTTY && typeof process.stdin.setRawMode === 'function';
-  
+
+  const hasRawMode =
+    process.stdin.isTTY && typeof process.stdin.setRawMode === "function";
+
   const displayVideos = videos;
 
   if (error) {
     return (
-      <Box height={stdout?.rows || 24} justifyContent="center" alignItems="center">
+      <Box
+        height={stdout?.rows || 24}
+        justifyContent="center"
+        alignItems="center"
+      >
         <Text color="red">❌ Error: {error}</Text>
       </Box>
     );
@@ -59,8 +64,8 @@ export function App({ useCache, maxChannels, includeShorts }: AppProps) {
 
   if (loading) {
     return (
-      <LoadingScreen 
-        text={refreshStatus || 'Loading your YouTube subscriptions...'} 
+      <LoadingScreen
+        text={refreshStatus || "Loading your YouTube subscriptions..."}
         progress={refreshProgress}
       />
     );
@@ -69,8 +74,8 @@ export function App({ useCache, maxChannels, includeShorts }: AppProps) {
   return (
     <Box height={stdout?.rows || 24}>
       {hasRawMode ? (
-        <VideoList 
-          videos={displayVideos} 
+        <VideoList
+          videos={displayVideos}
           onSelect={handleVideoSelect}
           onExit={handleExit}
           onRefresh={handleRefresh}
@@ -81,8 +86,8 @@ export function App({ useCache, maxChannels, includeShorts }: AppProps) {
           refreshStatus={refreshStatus}
         />
       ) : (
-        <SimpleVideoList 
-          videos={displayVideos} 
+        <SimpleVideoList
+          videos={displayVideos}
           onSelect={handleVideoSelect}
           onExit={handleExit}
           refreshing={refreshing}

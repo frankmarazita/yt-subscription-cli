@@ -1,12 +1,12 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Box, Text, useInput, useStdout } from "ink";
 import Spinner from "ink-spinner";
 import {
   groupVideosByDays,
   formatTimeAgo,
   getChannelColor,
-} from "../utils/dateUtils.js";
-import type { VideoItem, VideoGroup } from "../types.js";
+} from "../utils/dateUtils";
+import type { VideoItem, VideoGroup } from "../types";
 
 interface VideoListProps {
   videos: VideoItem[];
@@ -64,13 +64,19 @@ export function VideoList({
   useInput((input, key) => {
     if (key.upArrow || input === "k") {
       let newIndex = selectedIndex - 1;
-      while (newIndex >= 0 && isVideoGroup(flatList[newIndex])) {
+      while (
+        newIndex >= 0 &&
+        isVideoGroup(flatList[newIndex] as VideoItem | VideoGroup)
+      ) {
         newIndex--;
       }
       setSelectedIndex(Math.max(0, newIndex));
     } else if (key.downArrow || input === "j") {
       let newIndex = selectedIndex + 1;
-      while (newIndex < flatList.length && isVideoGroup(flatList[newIndex])) {
+      while (
+        newIndex < flatList.length &&
+        isVideoGroup(flatList[newIndex] as VideoItem | VideoGroup)
+      ) {
         newIndex++;
       }
       setSelectedIndex(Math.min(flatList.length - 1, newIndex));
