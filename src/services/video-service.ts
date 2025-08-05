@@ -13,7 +13,16 @@ function generateFallbackThumbnailUrl(videoLink: string): string | undefined {
 
 async function initDatabase() {
   const { Database } = await import("bun:sqlite");
-  const db = new Database("./app.db");
+  const path = await import("path");
+  const { fileURLToPath } = await import("url");
+  
+  // Get the directory of the current module
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  
+  // Create database path relative to the source file's location
+  const dbPath = path.resolve(__dirname, "../../app.db");
+  const db = new Database(dbPath);
 
   db.exec(`
       CREATE TABLE IF NOT EXISTS videos (
