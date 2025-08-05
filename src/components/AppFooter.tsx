@@ -38,7 +38,7 @@ function AppFooterComponent({ selectedVideo, listWidth }: AppFooterProps) {
 
       <Box justifyContent="center">
         <Text color="gray">
-          ↑↓/jk: Navigate | PgUp/PgDn: Jump | Enter/o: Open | w: Watch Later | r: Refresh | p: Toggle Preview | q/Esc: Quit
+          ↑↓/jk: Navigate | PgUp/PgDn: Jump | Enter/o: Open | w: Watch Later | s: QR Code | r: Refresh | p: Preview | q/Esc: Quit
         </Text>
       </Box>
     </>

@@ -4,6 +4,7 @@ import { formatTimeAgo, getChannelColor } from "../utils/dateUtils";
 import { ThumbnailPreview } from "./ThumbnailPreview";
 import { AppHeader } from "./AppHeader";
 import { AppFooter } from "./AppFooter";
+import { QRCodeModal } from "./QRCodeModal";
 import { useAppStore } from "../store/appStore";
 import type { VideoItem } from "../types";
 
@@ -125,6 +126,7 @@ export function VideoList({
   // Store state - declare these first!
   const [currentSelection, setCurrentSelection] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
+  const [showQRModal, setShowQRModal] = useState(false);
   const showPreview = useAppStore((state) => state.showPreview);
   const togglePreview = useAppStore((state) => state.togglePreview);
   const toggleVideoWatchLater = useAppStore(
@@ -249,6 +251,9 @@ export function VideoList({
 
   // Keyboard input handling
   useInput((input, key) => {
+    // Don't handle input if QR modal is shown (let modal handle it)
+    if (showQRModal) return;
+    
     if (key.upArrow || input === "k") {
       navigateUp();
     } else if (key.downArrow || input === "j") {
@@ -270,6 +275,10 @@ export function VideoList({
     } else if (input === "w") {
       if (selectedVideo) {
         toggleVideoWatchLater(selectedVideo.videoId);
+      }
+    } else if (input === "s") {
+      if (selectedVideo) {
+        setShowQRModal(true);
       }
     }
   });
@@ -351,6 +360,12 @@ export function VideoList({
       </Box>
 
       <AppFooter selectedVideo={selectedVideo} listWidth={terminalWidth} />
+      
+      <QRCodeModal
+        video={selectedVideo}
+        isVisible={showQRModal}
+        onClose={() => setShowQRModal(false)}
+      />
     </Box>
   );
 }

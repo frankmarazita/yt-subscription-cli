@@ -25,12 +25,12 @@ export function ThumbnailPreview({
   );
   const setThumbnailCache = useAppStore((state) => state.setThumbnailCache);
 
-  // Memoize stable dimensions to reduce re-renders
+  // Memoize stable dimensions with better scaling increments
   const stableDimensions = useMemo(
     () => ({ width, height }),
     [
-      Math.floor(width / 10) * 10, // Only update when width changes by 10+
-      Math.floor(height / 5) * 5, // Only update when height changes by 5+
+      Math.floor(width / 5) * 5, // Update when width changes by 5 (more responsive)
+      Math.floor(height / 3) * 3, // Update when height changes by 3 (more responsive)
     ]
   );
 
@@ -64,9 +64,28 @@ export function ThumbnailPreview({
           return;
         }
 
-        // Calculate target dimensions with constraints like the old implementation
-        const targetWidth = Math.min(stableDimensions.width - 4, 60);
-        const targetHeight = Math.min(stableDimensions.height - 4, 20);
+        // Scale dimensions based on available space
+        const availableWidth = stableDimensions.width - 2; // Less padding
+        
+        // More aggressive scaling for small screens
+        let targetWidth;
+        
+        if (availableWidth < 30) {
+          // Very small - use almost full width
+          targetWidth = Math.max(16, availableWidth - 1);
+        } else if (availableWidth < 45) {
+          // Small - use most of the width
+          targetWidth = Math.max(24, availableWidth - 2);
+        } else if (availableWidth < 70) {
+          // Medium - good size
+          targetWidth = Math.max(35, availableWidth - 3);
+        } else {
+          // Large - cap at reasonable size
+          targetWidth = Math.max(50, Math.min(availableWidth - 4, 80));
+        }
+        
+        // Let terminal-image calculate the height automatically
+        const targetHeight = undefined;
 
         const response = await fetch(video.thumbnailUrl);
         if (!response.ok) {
@@ -81,8 +100,7 @@ export function ThumbnailPreview({
 
         const image = await terminalImage.buffer(uint8Array, {
           width: targetWidth,
-          height: targetHeight,
-          preserveAspectRatio: true,
+          preserveAspectRatio: true, // Keep aspect ratio, auto-calculate height
         });
 
         if (image) {
@@ -124,16 +142,16 @@ export function ThumbnailPreview({
   }
 
   return (
-    <Box width={width} height={height} flexDirection="column">
-      <Box flexGrow={1} justifyContent="center" alignItems="center">
+    <Box width={width} height={height} flexDirection="column" paddingLeft={1}>
+      <Box flexGrow={1} justifyContent="flex-start" alignItems="flex-start">
         {loading && <Text color="yellow">Loading thumbnail...</Text>}
         {error && <Text color="red">Failed to load image</Text>}
         {imageData && !loading && !error && (
-          <Box flexDirection="column" alignItems="center">
+          <Box flexDirection="column" alignItems="flex-start" width="100%">
             <Text>{imageData}</Text>
             <Text color="cyan" bold>
-              {video.title.length > 30
-                ? `${video.title.substring(0, 30)}...`
+              {video.title.length > width - 8
+                ? `${video.title.substring(0, width - 8)}...`
                 : video.title}
             </Text>
             <Text color="gray" wrap="wrap">
