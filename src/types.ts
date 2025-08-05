@@ -8,6 +8,9 @@ export interface VideoItem {
   publishedDateTime: string;
   isShort: boolean;
   thumbnailUrl?: string;
+  viewCount?: number;
+  likeCount?: number;
+  description?: string;
 }
 
 export interface Subscription {

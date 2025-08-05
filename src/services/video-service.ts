@@ -24,6 +24,9 @@ async function initDatabase() {
         published INTEGER NOT NULL,
         is_short BOOLEAN NOT NULL DEFAULT 0,
         thumbnail_url TEXT,
+        view_count INTEGER,
+        like_count INTEGER,
+        description TEXT,
         cached_at INTEGER NOT NULL
       );
       
@@ -51,9 +54,27 @@ async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_playlist_videos_video ON playlist_videos(video_id);
     `);
 
-  // Add thumbnail_url column to existing tables (migration)
+  // Add new columns to existing tables (migration)
   try {
     db.run(`ALTER TABLE videos ADD COLUMN thumbnail_url TEXT`);
+  } catch (err) {
+    // Column already exists, ignore error
+  }
+
+  try {
+    db.run(`ALTER TABLE videos ADD COLUMN view_count INTEGER`);
+  } catch (err) {
+    // Column already exists, ignore error
+  }
+
+  try {
+    db.run(`ALTER TABLE videos ADD COLUMN like_count INTEGER`);
+  } catch (err) {
+    // Column already exists, ignore error
+  }
+
+  try {
+    db.run(`ALTER TABLE videos ADD COLUMN description TEXT`);
   } catch (err) {
     // Column already exists, ignore error
   }
@@ -91,13 +112,16 @@ function loadFromCache(db: any, maxAge: number = 30 * 60 * 1000): VideoItem[] {
     publishedDateTime: new Date(v.published).toLocaleString(),
     isShort: Boolean(v.is_short),
     thumbnailUrl: v.thumbnail_url || generateFallbackThumbnailUrl(v.link),
+    viewCount: v.view_count || undefined,
+    likeCount: v.like_count || undefined,
+    description: v.description || undefined,
   }));
 }
 
 function saveToCache(db: any, videos: VideoItem[]): void {
   const insert = db.prepare(`
-    INSERT OR REPLACE INTO videos (id, title, channel, link, published, is_short, thumbnail_url, cached_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO videos (id, title, channel, link, published, is_short, thumbnail_url, view_count, like_count, description, cached_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const now = Date.now();
@@ -112,6 +136,9 @@ function saveToCache(db: any, videos: VideoItem[]): void {
         video.published.getTime(),
         video.isShort ? 1 : 0,
         video.thumbnailUrl || null,
+        video.viewCount || null,
+        video.likeCount || null,
+        video.description || null,
         now
       );
     }

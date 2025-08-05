@@ -50,12 +50,12 @@ function VideoRow({
 
   const channelColor = isSelected ? "black" : getChannelColor(video.channel);
   const titleColor = textColor;
-  
+
   // Color dates based on age
   const now = new Date();
   const timeDiff = now.getTime() - video.published.getTime();
   const hoursAgo = timeDiff / (1000 * 60 * 60);
-  
+
   let dateColor = "green"; // default
   if (isSelected) {
     dateColor = "black";
@@ -63,10 +63,11 @@ function VideoRow({
     dateColor = "red"; // very recent
   } else if (hoursAgo < 24) {
     dateColor = "yellow"; // today
-  } else if (hoursAgo < 168) { // 7 days
+  } else if (hoursAgo < 168) {
+    // 7 days
     dateColor = "cyan"; // this week
   }
-  
+
   const timeAgo = formatTimeAgo(video.published);
 
   const displayChannel = truncate(video.channel, channelWidth);
@@ -122,7 +123,6 @@ export function VideoList({
   terminalWidth,
   terminalHeight,
 }: VideoListProps) {
-
   // Store state - declare these first!
   const [currentSelection, setCurrentSelection] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -133,7 +133,6 @@ export function VideoList({
     (state) => state.toggleVideoWatchLater
   );
   const isVideoInWatchLater = useAppStore((state) => state.isVideoInWatchLater);
-
 
   // Dynamic layout calculations with better space utilization
   const thumbnailWidth = showPreview
@@ -213,6 +212,11 @@ export function VideoList({
     return videos[currentSelection] || null;
   }, [videos, currentSelection]);
 
+  // Get next video for preloading
+  const nextVideo = useMemo(() => {
+    return videos[currentSelection + 1] || null;
+  }, [videos, currentSelection]);
+
   // Simplified navigation for flat list
   const navigateUp = () => {
     if (videos.length === 0) return;
@@ -253,7 +257,7 @@ export function VideoList({
   useInput((input, key) => {
     // Don't handle input if QR modal is shown (let modal handle it)
     if (showQRModal) return;
-    
+
     if (key.upArrow || input === "k") {
       navigateUp();
     } else if (key.downArrow || input === "j") {
@@ -320,7 +324,12 @@ export function VideoList({
       />
 
       <Box flexDirection="row" flexGrow={1} marginTop={1}>
-        <Box flexDirection="column" width={listWidth} paddingX={1}>
+        <Box
+          flexDirection="column"
+          width={listWidth}
+          paddingX={1}
+          marginRight={showPreview ? 1 : 0}
+        >
           {/* Column headers */}
           <Box marginBottom={1} paddingX={1}>
             <Box flexDirection="row" width="100%">
@@ -351,16 +360,19 @@ export function VideoList({
         </Box>
 
         {showPreview && (
-          <ThumbnailPreview
-            video={selectedVideo}
-            width={thumbnailWidth + 2}
-            height={listHeight + 2}
-          />
+          <Box width={thumbnailWidth} flexShrink={0}>
+            <ThumbnailPreview
+              video={selectedVideo}
+              width={thumbnailWidth}
+              height={listHeight + 2}
+              preloadVideo={nextVideo}
+            />
+          </Box>
         )}
       </Box>
 
       <AppFooter selectedVideo={selectedVideo} listWidth={terminalWidth} />
-      
+
       <QRCodeModal
         video={selectedVideo}
         isVisible={showQRModal}

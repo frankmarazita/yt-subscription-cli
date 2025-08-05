@@ -9,25 +9,25 @@ import { useEffect, useState } from "react";
 export function App() {
   const { stdout } = useStdout();
   const { exit } = useApp();
-  
+
   // Centralized dimension handling with process.stdout listener
-  const [dimensions, setDimensions] = useState({ 
-    width: stdout?.columns || 80, 
-    height: stdout?.rows || 24 
+  const [dimensions, setDimensions] = useState({
+    width: stdout?.columns || 80,
+    height: stdout?.rows || 24,
   });
-  
+
   useEffect(() => {
     const handleResize = () => {
       const newWidth = process.stdout.columns || 80;
       const newHeight = process.stdout.rows || 24;
       setDimensions({ width: newWidth, height: newHeight });
     };
-    
+
     // Listen to process.stdout resize events
-    process.stdout.on('resize', handleResize);
-    
+    process.stdout.on("resize", handleResize);
+
     return () => {
-      process.stdout.off('resize', handleResize);
+      process.stdout.off("resize", handleResize);
     };
   }, []);
 

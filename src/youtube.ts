@@ -2,12 +2,19 @@ import { parseString } from "xml2js";
 import { readFile } from "fs/promises";
 import type { VideoItem, Subscription } from "./types";
 import { promisify } from "util";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
 const parseStringPromise = promisify(parseString);
 
 export async function loadSubscriptions(): Promise<Subscription[]> {
   try {
-    const data = await readFile("./subscriptions.csv", "utf-8");
+    // Get the directory of this module file
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const subscriptionsPath = join(__dirname, "..", "subscriptions.csv");
+
+    const data = await readFile(subscriptionsPath, "utf-8");
     const lines = data.trim().split("\n");
     const subscriptions: Subscription[] = [];
 
@@ -84,6 +91,46 @@ export async function fetchRSSFeed(
         }
       }
 
+      // Extract additional metadata from media:group
+      let viewCount: number | undefined;
+      let likeCount: number | undefined;
+      let description: string | undefined;
+
+      if (entry["media:group"] && entry["media:group"][0]) {
+        const mediaGroup = entry["media:group"][0];
+
+        // Extract view count and like count from media:community
+        if (mediaGroup["media:community"] && mediaGroup["media:community"][0]) {
+          const community = mediaGroup["media:community"][0];
+
+          // View count from statistics
+          if (
+            community["media:statistics"] &&
+            community["media:statistics"][0]
+          ) {
+            const views = community["media:statistics"][0].$.views;
+            viewCount = views ? parseInt(views, 10) : undefined;
+          }
+
+          // Like count from star rating
+          if (
+            community["media:starRating"] &&
+            community["media:starRating"][0]
+          ) {
+            const likes = community["media:starRating"][0].$.count;
+            likeCount = likes ? parseInt(likes, 10) : undefined;
+          }
+        }
+
+        // Extract description
+        if (
+          mediaGroup["media:description"] &&
+          mediaGroup["media:description"][0]
+        ) {
+          description = mediaGroup["media:description"][0];
+        }
+      }
+
       videos.push({
         videoId,
         title: entry.title[0],
@@ -94,6 +141,9 @@ export async function fetchRSSFeed(
         publishedDateTime: publishedDate.toLocaleString(),
         isShort,
         thumbnailUrl,
+        viewCount,
+        likeCount,
+        description,
       });
     }
 

@@ -3,17 +3,20 @@ import { Box, Text } from "ink";
 import { useAppStore } from "../store/appStore";
 import type { VideoItem } from "../types";
 import terminalImage from "terminal-image";
+import { formatNumber, truncateText } from "../utils/formatUtils";
 
 interface ThumbnailPreviewProps {
   video: VideoItem | null;
   width: number;
   height: number;
+  preloadVideo?: VideoItem | null;
 }
 
 export function ThumbnailPreview({
   video,
   width,
   height,
+  preloadVideo,
 }: ThumbnailPreviewProps) {
   const [imageData, setImageData] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -66,10 +69,10 @@ export function ThumbnailPreview({
 
         // Scale dimensions based on available space
         const availableWidth = stableDimensions.width - 2; // Less padding
-        
+
         // More aggressive scaling for small screens
         let targetWidth;
-        
+
         if (availableWidth < 30) {
           // Very small - use almost full width
           targetWidth = Math.max(16, availableWidth - 1);
@@ -83,7 +86,7 @@ export function ThumbnailPreview({
           // Large - cap at reasonable size
           targetWidth = Math.max(50, Math.min(availableWidth - 4, 80));
         }
-        
+
         // Let terminal-image calculate the height automatically
         const targetHeight = undefined;
 
@@ -128,6 +131,64 @@ export function ThumbnailPreview({
     setThumbnailCache,
   ]);
 
+  // Preload next video thumbnail
+  useEffect(() => {
+    if (!preloadVideo?.thumbnailUrl) return;
+
+    const preloadThumbnailData = async () => {
+      const cacheKey = `${preloadVideo.videoId}-${stableDimensions.width}x${stableDimensions.height}`;
+
+      // Skip if already cached
+      if (getThumbnailFromCache(cacheKey)) return;
+
+      try {
+        // Calculate target dimensions (same logic as main thumbnail)
+        const availableWidth = stableDimensions.width - 2;
+        let targetWidth;
+
+        if (availableWidth < 30) {
+          targetWidth = Math.max(16, availableWidth - 1);
+        } else if (availableWidth < 45) {
+          targetWidth = Math.max(24, availableWidth - 2);
+        } else if (availableWidth < 70) {
+          targetWidth = Math.max(35, availableWidth - 3);
+        } else {
+          targetWidth = Math.max(50, Math.min(availableWidth - 4, 80));
+        }
+
+        if (!preloadVideo.thumbnailUrl) return;
+        const response = await fetch(preloadVideo.thumbnailUrl);
+        if (!response.ok) return;
+
+        const arrayBuffer = await response.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+        const image = await terminalImage.buffer(uint8Array, {
+          width: targetWidth,
+          preserveAspectRatio: true,
+        });
+
+        if (image) {
+          // Cache the preloaded image
+          setThumbnailCache(cacheKey, image);
+        }
+      } catch (err) {
+        // Silently fail preloading to avoid disrupting main UI
+      }
+    };
+
+    // Delay preloading slightly to not interfere with main thumbnail
+    const timer = setTimeout(preloadThumbnailData, 100);
+    return () => clearTimeout(timer);
+  }, [
+    preloadVideo?.videoId,
+    preloadVideo?.thumbnailUrl,
+    stableDimensions.width,
+    stableDimensions.height,
+    getThumbnailFromCache,
+    setThumbnailCache,
+  ]);
+
   if (!video) {
     return (
       <Box
@@ -142,32 +203,80 @@ export function ThumbnailPreview({
   }
 
   return (
-    <Box width={width} height={height} flexDirection="column" paddingLeft={1}>
+    <Box
+      width={width}
+      height={height}
+      flexDirection="column"
+      paddingX={1}
+      overflow="hidden"
+    >
       <Box flexGrow={1} justifyContent="flex-start" alignItems="flex-start">
         {loading && <Text color="yellow">Loading thumbnail...</Text>}
         {error && <Text color="red">Failed to load image</Text>}
         {imageData && !loading && !error && (
           <Box flexDirection="column" alignItems="flex-start" width="100%">
             <Text>{imageData}</Text>
-            <Text color="cyan" bold>
-              {video.title.length > width - 8
-                ? `${video.title.substring(0, width - 8)}...`
-                : video.title}
-            </Text>
-            <Text color="gray" wrap="wrap">
-              {video.channel}
-            </Text>
+            <Box width="100%" overflow="hidden">
+              <Text color="cyan" bold>
+                {truncateText(video.title, width - 4)}
+              </Text>
+            </Box>
+            <Box width="100%" overflow="hidden">
+              <Text color="gray">{truncateText(video.channel, width - 4)}</Text>
+            </Box>
+
+            {/* Stats */}
+            <Box flexDirection="row" marginTop={1}>
+              {video.viewCount && (
+                <Box marginRight={2}>
+                  <Text color="green">👁 {formatNumber(video.viewCount)}</Text>
+                </Box>
+              )}
+              {video.likeCount && (
+                <Box>
+                  <Text color="red">❤️ {formatNumber(video.likeCount)}</Text>
+                </Box>
+              )}
+            </Box>
+
+            {/* Description */}
+            {video.description && (
+              <Box marginTop={1} width="100%" overflow="hidden">
+                <Text color="gray">
+                  {truncateText(
+                    video.description,
+                    Math.min(200, (width - 4) * 2)
+                  )}
+                </Text>
+              </Box>
+            )}
           </Box>
         )}
         {!imageData && !loading && !error && video.thumbnailUrl && (
-          <Box flexDirection="column" alignItems="center">
+          <Box flexDirection="column" alignItems="center" width="100%">
             <Text color="gray">📺</Text>
-            <Text color="gray" wrap="wrap">
-              {video.title.substring(0, 30)}...
-            </Text>
-            <Text color="cyan" bold>
-              {video.channel}
-            </Text>
+            <Box width="100%" overflow="hidden" alignItems="center">
+              <Text color="gray">{truncateText(video.title, width - 4)}</Text>
+            </Box>
+            <Box width="100%" overflow="hidden" alignItems="center">
+              <Text color="cyan" bold>
+                {truncateText(video.channel, width - 4)}
+              </Text>
+            </Box>
+
+            {/* Stats for fallback view */}
+            <Box flexDirection="row" marginTop={1}>
+              {video.viewCount && (
+                <Box marginRight={2}>
+                  <Text color="green">👁 {formatNumber(video.viewCount)}</Text>
+                </Box>
+              )}
+              {video.likeCount && (
+                <Box>
+                  <Text color="red">❤️ {formatNumber(video.likeCount)}</Text>
+                </Box>
+              )}
+            </Box>
           </Box>
         )}
         {!video.thumbnailUrl && !loading && (

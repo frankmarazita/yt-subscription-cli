@@ -19,13 +19,16 @@ export function QRCodeModal({ video, isVisible, onClose }: QRCodeModalProps) {
           setQrCodeData(qrString);
         });
       } catch (err) {
-        console.error('QR code generation failed:', err);
+        console.error("QR code generation failed:", err);
       }
     }
   }, [video?.link, isVisible]);
 
   useInput((input, key) => {
-    if (isVisible && (key.escape || input === 'q' || input === ' ' || key.return)) {
+    if (
+      isVisible &&
+      (key.escape || input === "q" || input === " " || key.return)
+    ) {
       onClose();
     }
   });
@@ -37,22 +40,26 @@ export function QRCodeModal({ video, isVisible, onClose }: QRCodeModalProps) {
   return (
     <Box
       position="absolute"
-      top={0}
-      left={0}
-      right={0}
-      bottom={0}
-      backgroundColor="black"
       flexDirection="column"
       alignItems="center"
       justifyContent="center"
       width="100%"
       height="100%"
     >
-      {qrCodeData ? (
-        <Text>{qrCodeData}</Text>
-      ) : (
-        <Text color="yellow">Generating QR code...</Text>
-      )}
+      <Box
+        paddingX={5}
+        paddingY={3}
+        borderStyle="round"
+        borderColor="white"
+        flexDirection="column"
+        alignItems="center"
+      >
+        {qrCodeData ? (
+          <Text>{qrCodeData}</Text>
+        ) : (
+          <Text color="yellow">Generating QR code...</Text>
+        )}
+      </Box>
     </Box>
   );
 }
