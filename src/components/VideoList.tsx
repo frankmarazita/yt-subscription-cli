@@ -47,7 +47,23 @@ function VideoRow({
 
   const channelColor = isSelected ? "black" : getChannelColor(video.channel);
   const titleColor = textColor;
-  const dateColor = isSelected ? "black" : "green";
+  
+  // Color dates based on age
+  const now = new Date();
+  const timeDiff = now.getTime() - video.published.getTime();
+  const hoursAgo = timeDiff / (1000 * 60 * 60);
+  
+  let dateColor = "green"; // default
+  if (isSelected) {
+    dateColor = "black";
+  } else if (hoursAgo < 2) {
+    dateColor = "red"; // very recent
+  } else if (hoursAgo < 24) {
+    dateColor = "yellow"; // today
+  } else if (hoursAgo < 168) { // 7 days
+    dateColor = "cyan"; // this week
+  }
+  
   const timeAgo = formatTimeAgo(video.published);
 
   const displayChannel = truncate(video.channel, channelWidth);
