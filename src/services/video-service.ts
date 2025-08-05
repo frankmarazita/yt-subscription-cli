@@ -3,7 +3,8 @@ import type { VideoItem, Subscription } from "../types";
 
 function generateFallbackThumbnailUrl(videoLink: string): string | undefined {
   // Extract video ID from YouTube URL and generate thumbnail URL
-  const videoIdMatch = videoLink.match(/[?&]v=([^&]+)/) || videoLink.match(/\/shorts\/([^?&]+)/);
+  const videoIdMatch =
+    videoLink.match(/[?&]v=([^&]+)/) || videoLink.match(/\/shorts\/([^?&]+)/);
   if (videoIdMatch) {
     return `https://img.youtube.com/vi/${videoIdMatch[1]}/mqdefault.jpg`;
   }
@@ -41,10 +42,7 @@ async function initDatabase() {
   return db;
 }
 
-function loadFromCache(
-  db: any,
-  maxAge: number = 30 * 60 * 1000
-): VideoItem[] {
+function loadFromCache(db: any, maxAge: number = 30 * 60 * 1000): VideoItem[] {
   const cutoff = Date.now() - maxAge;
 
   const stmt = db.prepare(`
@@ -122,7 +120,7 @@ export async function fetchVideos(
     if (forceRefresh) {
       allVideos = []; // Clear existing videos when force refreshing
     }
-    
+
     onStatusChange?.("Fetching videos from RSS feeds...");
     onProgress?.(0, subs.length);
 
@@ -159,7 +157,15 @@ export async function fetchVideos(
   }
 
   // Filter shorts and ensure valid video items
-  allVideos = allVideos.filter((video) => !video.isShort && video && video.title && video.channel && video.link && video.videoId);
+  allVideos = allVideos.filter(
+    (video) =>
+      !video.isShort &&
+      video &&
+      video.title &&
+      video.channel &&
+      video.link &&
+      video.videoId
+  );
 
   // Sort by published date (newest first - latest videos at top)
   // This matches the sorting in groupVideosByDays to avoid double sorting

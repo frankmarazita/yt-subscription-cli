@@ -8,15 +8,15 @@ const parseStringPromise = promisify(parseString);
 export async function loadSubscriptions(): Promise<Subscription[]> {
   try {
     const data = await readFile("./subscriptions.csv", "utf-8");
-    const lines = data.trim().split('\n');
+    const lines = data.trim().split("\n");
     const subscriptions: Subscription[] = [];
-    
+
     // Skip header row
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       if (!line) continue;
-      
-      const parts = line.split(',');
+
+      const parts = line.split(",");
       if (parts.length >= 3) {
         const channelId = parts[0]?.trim();
         const channelTitle = parts[2]?.trim();
@@ -25,13 +25,13 @@ export async function loadSubscriptions(): Promise<Subscription[]> {
           subscriptions.push({
             snippet: {
               channelId: channelId,
-              title: channelTitle
-            }
+              title: channelTitle,
+            },
           });
         }
       }
-      }
-    
+    }
+
     return subscriptions;
   } catch (error) {
     throw new Error("Failed to load subscriptions.csv");
@@ -61,8 +61,8 @@ export async function fetchRSSFeed(
       const publishedDate = new Date(entry.published[0]);
       const link = entry.link[0].$.href;
       const isShort = link.includes("/shorts/");
-      
-      const videoId = entry['yt:videoId']?.[0];
+
+      const videoId = entry["yt:videoId"]?.[0];
 
       // Skip if the video ID is missing for any reason
       if (!videoId) {
@@ -76,7 +76,7 @@ export async function fetchRSSFeed(
         // Use the highest quality thumbnail (last one in the array)
         thumbnailUrl = thumbnails[thumbnails.length - 1]?.$.url;
       }
-      
+
       // Fallback: generate thumbnail URL from video ID if not found in RSS
       if (!thumbnailUrl) {
         if (videoId) {

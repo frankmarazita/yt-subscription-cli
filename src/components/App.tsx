@@ -11,7 +11,17 @@ export function App() {
   const { exit } = useApp();
 
   const store = useAppStore();
-  const { videos, loading, refreshing, error, lastUpdated, cacheAge, refresh, refreshProgress, refreshStatus } = store;
+  const {
+    videos,
+    loading,
+    refreshing,
+    error,
+    lastUpdated,
+    cacheAge,
+    refresh,
+    refreshProgress,
+    refreshStatus,
+  } = store;
 
   const autoRefreshInterval = 5 * 60 * 1000; // 5 minutes
 

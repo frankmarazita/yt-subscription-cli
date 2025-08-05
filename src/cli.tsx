@@ -5,14 +5,14 @@ import { hideBin } from "yargs/helpers";
 import { App } from "./components/App.js";
 
 // Enable alternate screen buffer
-process.stdout.write('\x1b[?1049h');
+process.stdout.write("\x1b[?1049h");
 
 const { waitUntilExit } = render(<App />, {
   exitOnCtrlC: true,
-  patchConsole: false
+  patchConsole: false,
 });
 
 // Restore original screen when app exits
 waitUntilExit().then(() => {
-  process.stdout.write('\x1b[?1049l');
+  process.stdout.write("\x1b[?1049l");
 });

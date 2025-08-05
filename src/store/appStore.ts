@@ -1,31 +1,31 @@
-import { create } from 'zustand';
-import { fetchVideos } from '../services/video-service';
-import type { VideoItem, Subscription } from '../types';
+import { create } from "zustand";
+import { fetchVideos } from "../services/video-service";
+import type { VideoItem, Subscription } from "../types";
 
 interface AppState {
   // Video data
   videos: VideoItem[];
   subscriptions: Subscription[];
-  
+
   // Loading states
   loading: boolean;
   refreshing: boolean;
   error: string | null;
-  
+
   // Progress tracking
   refreshProgress: { current: number; total: number };
   refreshStatus: string;
-  
+
   // Metadata
   lastUpdated: Date | null;
   cacheAge: number;
-  
+
   // UI state
   showPreview: boolean;
-  
+
   // Thumbnail cache
   thumbnailCache: Map<string, string>;
-  
+
   // Actions
   loadVideos: (forceRefresh?: boolean) => Promise<void>;
   refresh: () => Promise<void>;
@@ -43,7 +43,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   refreshing: false,
   error: null,
   refreshProgress: { current: 0, total: 0 },
-  refreshStatus: '',
+  refreshStatus: "",
   lastUpdated: null,
   cacheAge: 0,
   showPreview: true,
@@ -52,7 +52,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Actions
   loadVideos: async (forceRefresh = false) => {
     const state = get();
-    
+
     // Prevent concurrent loads
     if (state.loading || state.refreshing) return;
 
@@ -61,7 +61,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       refreshing: forceRefresh,
       error: null,
       refreshProgress: { current: 0, total: 0 },
-      refreshStatus: '',
+      refreshStatus: "",
     });
 
     try {
@@ -86,7 +86,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : 'Unknown error occurred',
+        error: err instanceof Error ? err.message : "Unknown error occurred",
         loading: false,
         refreshing: false,
       });

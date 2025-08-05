@@ -55,6 +55,7 @@ bun run dev  # Run with file watching and hot reload
 ## Thumbnail Support
 
 The app displays video thumbnails in terminals that support image protocols:
+
 - **iTerm2** (macOS)
 - **Kitty** (cross-platform)
 - **Wezterm** (cross-platform)
@@ -74,6 +75,7 @@ In unsupported terminals, thumbnails appear as colored ASCII blocks.
 ## Architecture
 
 The app uses a modular React component architecture:
+
 - **Memoized components** to prevent unnecessary re-renders
 - **Background thumbnail caching** with LRU eviction
 - **Prefetching system** for smooth navigation

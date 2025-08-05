@@ -9,12 +9,12 @@ interface AppHeaderProps {
   cacheAge: number;
 }
 
-function AppHeaderComponent({ 
-  refreshing, 
-  refreshStatus, 
-  refreshProgress, 
-  lastUpdated, 
-  cacheAge 
+function AppHeaderComponent({
+  refreshing,
+  refreshStatus,
+  refreshProgress,
+  lastUpdated,
+  cacheAge,
 }: AppHeaderProps) {
   return (
     <Box justifyContent="space-between">

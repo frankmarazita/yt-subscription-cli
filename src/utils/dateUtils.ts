@@ -1,7 +1,5 @@
 import type { VideoItem } from "../types";
-import { format } from 'timeago.js';
-
-
+import { format } from "timeago.js";
 
 export function formatTimeAgo(date: Date): string {
   return format(date);

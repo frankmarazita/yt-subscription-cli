@@ -10,13 +10,9 @@ export interface VideoItem {
   thumbnailUrl?: string;
 }
 
-
-
 export interface Subscription {
   snippet: {
     channelId: string;
     title: string;
   };
 }
-
-
