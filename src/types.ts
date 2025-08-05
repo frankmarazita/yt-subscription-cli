@@ -1,4 +1,5 @@
 export interface VideoItem {
+  videoId: string;
   title: string;
   channel: string;
   link: string;
@@ -9,11 +10,7 @@ export interface VideoItem {
   thumbnailUrl?: string;
 }
 
-export interface VideoGroup {
-  label: string;
-  videos: VideoItem[];
-  daysBetween: number;
-}
+
 
 export interface Subscription {
   snippet: {

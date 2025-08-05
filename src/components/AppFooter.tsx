@@ -18,20 +18,17 @@ function AppFooterComponent({ selectedVideo, listWidth }: AppFooterProps) {
     <>
       <Box height={3}>
         <Box flexDirection="column" flexGrow={1}>
-          <Text color="gray">
-            {"=".repeat(Math.max(listWidth - 4, 40))}
-          </Text>
+          <Text color="gray">{"=".repeat(listWidth)}</Text>
           {selectedVideo && (
             <>
               <Text color="cyan">
-                Selected:{" "}
                 {truncateText(
                   selectedVideo.title || "None",
                   Math.floor(listWidth * 0.8)
                 )}
               </Text>
               <Text color="gray">
-                Channel: {selectedVideo.channel || "N/A"} | Date:{" "}
+                {selectedVideo.channel || "N/A"} | Date:{" "}
                 {selectedVideo.publishedDateTime || "N/A"}
               </Text>
             </>
@@ -41,7 +38,8 @@ function AppFooterComponent({ selectedVideo, listWidth }: AppFooterProps) {
 
       <Box justifyContent="center">
         <Text color="gray">
-          ↑↓/jk: Navigate | Enter/o: Open | r: Refresh | p: Toggle Preview | q/Esc: Quit
+          ↑↓/jk: Navigate | Enter/o: Open | r: Refresh | p: Toggle Preview |
+          q/Esc: Quit
         </Text>
       </Box>
     </>

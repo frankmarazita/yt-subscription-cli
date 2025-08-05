@@ -1,27 +1,37 @@
-import { Box, Text, useStdout } from "ink";
+import { Box, Text, useStdout, useApp } from "ink";
 import { exec } from "child_process";
 import { VideoList } from "./VideoList";
-import { SimpleVideoList } from "./SimpleVideoList";
 import { LoadingScreen } from "./LoadingScreen";
-import { useVideoData } from "../hooks/useVideoData";
+import { useAppStore } from "../store/appStore";
 import type { VideoItem } from "../types";
+import { useEffect } from "react";
 
 export function App() {
   const { stdout } = useStdout();
+  const { exit } = useApp();
 
-  const {
-    videos,
-    loading,
-    refreshing,
-    error,
-    lastUpdated,
-    cacheAge,
-    refresh,
-    refreshProgress,
-    refreshStatus,
-  } = useVideoData({
-    autoRefreshInterval: 5 * 60 * 1000, // 5 minutes
-  });
+  const store = useAppStore();
+  const { videos, loading, refreshing, error, lastUpdated, cacheAge, refresh, refreshProgress, refreshStatus } = store;
+
+  const autoRefreshInterval = 5 * 60 * 1000; // 5 minutes
+
+  // Initial load
+  useEffect(() => {
+    store.loadVideos();
+  }, [store.loadVideos]);
+
+  // Auto-refresh setup
+  useEffect(() => {
+    if (!store.lastUpdated || store.loading) return;
+
+    const interval = setInterval(() => {
+      if (!store.loading && !store.refreshing) {
+        store.refresh();
+      }
+    }, autoRefreshInterval);
+
+    return () => clearInterval(interval);
+  }, [store.lastUpdated, store.loading, store.refresh, autoRefreshInterval]);
 
   const openVideoInBrowser = (url: string) => {
     const command =
@@ -38,15 +48,12 @@ export function App() {
   };
 
   const handleExit = () => {
-    process.exit(0);
+    exit();
   };
 
-  const handleRefresh = async () => {
-    await refresh();
+  const handleRefresh = () => {
+    refresh();
   };
-
-  const hasRawMode =
-    process.stdin.isTTY && typeof process.stdin.setRawMode === "function";
 
   const displayVideos = videos;
 
@@ -73,28 +80,17 @@ export function App() {
 
   return (
     <Box height={stdout?.rows || 24}>
-      {hasRawMode ? (
-        <VideoList
-          videos={displayVideos}
-          onSelect={handleVideoSelect}
-          onExit={handleExit}
-          onRefresh={handleRefresh}
-          refreshing={refreshing}
-          lastUpdated={lastUpdated}
-          cacheAge={cacheAge}
-          refreshProgress={refreshProgress}
-          refreshStatus={refreshStatus}
-        />
-      ) : (
-        <SimpleVideoList
-          videos={displayVideos}
-          onSelect={handleVideoSelect}
-          onExit={handleExit}
-          refreshing={refreshing}
-          lastUpdated={lastUpdated}
-          cacheAge={cacheAge}
-        />
-      )}
+      <VideoList
+        videos={displayVideos}
+        onSelect={handleVideoSelect}
+        onExit={handleExit}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+        lastUpdated={lastUpdated}
+        cacheAge={cacheAge}
+        refreshProgress={refreshProgress}
+        refreshStatus={refreshStatus}
+      />
     </Box>
   );
 }

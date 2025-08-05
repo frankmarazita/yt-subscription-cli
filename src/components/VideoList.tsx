@@ -1,17 +1,12 @@
-import { useState, useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useRef, useState } from "react";
 import { Box, Text, useInput, useStdout } from "ink";
-import Spinner from "ink-spinner";
-import {
-  groupVideosByDays,
-  formatTimeAgo,
-  getChannelColor,
-} from "../utils/dateUtils";
+import emojiStrip from "emoji-strip";
+import { formatTimeAgo, getChannelColor } from "../utils/dateUtils";
 import { ThumbnailPreview } from "./ThumbnailPreview";
-import { prefetchThumbnails } from "../utils/thumbnailCache";
 import { AppHeader } from "./AppHeader";
 import { AppFooter } from "./AppFooter";
-import { VideoListItems } from "./VideoListItems";
-import type { VideoItem, VideoGroup } from "../types";
+import { useAppStore } from "../store/appStore";
+import type { VideoItem } from "../types";
 
 interface VideoListProps {
   videos: VideoItem[];
@@ -25,8 +20,68 @@ interface VideoListProps {
   refreshStatus?: string;
 }
 
-function isVideoGroup(item: VideoItem | VideoGroup): item is VideoGroup {
-  return (item as VideoGroup).videos !== undefined;
+interface VideoRowProps {
+  video: VideoItem;
+  isSelected: boolean;
+  channelWidth: number;
+  titleWidth: number;
+  dateWidth: number;
+}
+
+function VideoRow({
+  video,
+  isSelected,
+  channelWidth,
+  titleWidth,
+  dateWidth,
+}: VideoRowProps) {
+  const bgColor = isSelected ? "yellow" : "";
+  const textColor = isSelected ? "black" : "white";
+
+  const truncate = (text: string, max: number) => {
+    if (!text) return "";
+    if (text.length <= max) return text;
+    return text.substring(0, max - 3) + "...";
+  };
+
+  const channelColor = isSelected ? "black" : getChannelColor(video.channel);
+  const titleColor = textColor;
+  const dateColor = isSelected ? "black" : "green";
+  const timeAgo = formatTimeAgo(video.published);
+
+  const displayChannel = truncate(video.channel, channelWidth);
+  const displayTitle = truncate(video.title, titleWidth);
+  const displayTime = timeAgo || "Unknown Time";
+
+  return (
+    <Box
+      width="100%"
+      paddingX={1}
+      {...(isSelected ? { backgroundColor: "yellow" } : {})}
+    >
+      <Box flexDirection="row" width="100%">
+        <Box
+          width={channelWidth}
+          marginRight={2}
+          flexShrink={0}
+          overflow="hidden"
+        >
+          <Text color={channelColor}>{displayChannel}</Text>
+        </Box>
+        <Box
+          width={titleWidth}
+          marginRight={2}
+          flexShrink={0}
+          overflow="hidden"
+        >
+          <Text color={titleColor}>{displayTitle}</Text>
+        </Box>
+        <Box width={dateWidth} flexShrink={0} overflow="hidden">
+          <Text color={dateColor}>{displayTime}</Text>
+        </Box>
+      </Box>
+    </Box>
+  );
 }
 
 export function VideoList({
@@ -41,146 +96,168 @@ export function VideoList({
   refreshStatus = "",
 }: VideoListProps) {
   const { stdout } = useStdout();
+
+  // Use stdout dimensions directly - let Ink handle resizing
   const terminalWidth = stdout?.columns || 80;
   const terminalHeight = stdout?.rows || 24;
-  
-  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Store state - declare these first!
+  const [currentSelection, setCurrentSelection] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
-  const [showPreview, setShowPreview] = useState(true);
-  
-  // Memoize layout calculations to prevent flickering
-  const layout = useMemo(() => {
-    const thumbnailWidth = showPreview ? Math.min(80, Math.floor(terminalWidth * 0.5)) : 0;
-    const listWidth = terminalWidth - thumbnailWidth;
-    const listHeight = Math.max(10, terminalHeight - 8);
-    return { thumbnailWidth, listWidth, listHeight };
-  }, [terminalWidth, terminalHeight, showPreview]);
+  const showPreview = useAppStore((state) => state.showPreview);
+  const togglePreview = useAppStore((state) => state.togglePreview);
 
-  const { thumbnailWidth, listWidth, listHeight } = layout;
-
-  // Memoize column widths to prevent recalculation on every render
-  const columnWidths = useMemo(() => {
-    const contentWidth = listWidth - 2; // Account for padding
-    return {
-      channelWidth: Math.floor(contentWidth * 0.2),
-      titleWidth: Math.floor(contentWidth * 0.65),
-      dateWidth: Math.floor(contentWidth * 0.15),
-    };
-  }, [listWidth]);
-
-  const videoGroups = useMemo(() => groupVideosByDays(videos), [videos]);
-
-  const flatList = useMemo(() => {
-    const items: (VideoGroup | VideoItem)[] = [];
-    videoGroups.forEach((group) => {
-      items.push(group);
-      items.push(...group.videos);
-    });
-    return items;
-  }, [videoGroups]);
-
+  // Reset scroll position when dimensions change to prevent UI issues
   useEffect(() => {
-    const firstVideoIndex = flatList.findIndex((item) => !isVideoGroup(item));
-    setSelectedIndex(firstVideoIndex !== -1 ? firstVideoIndex : 0);
     setScrollOffset(0);
-    
-    // Initial prefetching of first few videos
-    if (showPreview && flatList.length > 0) {
-      const initialVideos: VideoItem[] = [];
-      let count = 0;
-      const maxInitialPrefetch = 5;
-      
-      for (let i = 0; i < flatList.length && count < maxInitialPrefetch; i++) {
-        const item = flatList[i];
-        if (item && !isVideoGroup(item)) {
-          initialVideos.push(item as VideoItem);
-          count++;
+  }, [terminalWidth, terminalHeight, setScrollOffset]);
+
+  // Dynamic layout calculations with better space utilization
+  const thumbnailWidth = showPreview
+    ? Math.min(60, Math.floor(terminalWidth * 0.5))
+    : 0;
+  const listWidth = terminalWidth - thumbnailWidth;
+  const listHeight = Math.max(1, terminalHeight - 10);
+
+  // More sophisticated column width calculation
+  const availableWidth = listWidth - 15; // Account for padding, margins, and separators
+  const minChannelWidth = 20;
+  const minTitleWidth = 40;
+  const minDateWidth = 12;
+
+  // Calculate optimal column widths based on available space
+  const calculateColumnWidths = (available: number) => {
+    // Start with minimum widths
+    let remaining = available - minChannelWidth - minTitleWidth - minDateWidth;
+
+    if (remaining > 0) {
+      // Distribute extra space: 20% to channel, 65% to title, 15% to date
+      const extraChannel = Math.floor(remaining * 0.2);
+      const extraTitle = Math.floor(remaining * 0.65);
+      const extraDate = remaining - extraChannel - extraTitle;
+
+      return {
+        channelWidth: minChannelWidth + extraChannel,
+        titleWidth: minTitleWidth + extraTitle,
+        dateWidth: minDateWidth + extraDate,
+      };
+    } else {
+      // If we're really tight on space, prioritize title
+      const totalMin = minChannelWidth + minTitleWidth + minDateWidth;
+      const scale = Math.min(1, available / totalMin);
+
+      let channelWidth = Math.max(15, Math.floor(minChannelWidth * scale));
+      let titleWidth = Math.max(30, Math.floor(minTitleWidth * scale));
+      let dateWidth = Math.max(10, Math.floor(minDateWidth * scale));
+
+      // Ensure we don't exceed available width
+      let totalUsed = channelWidth + titleWidth + dateWidth;
+      if (totalUsed > available) {
+        const overflow = totalUsed - available;
+        // Remove overflow from title first (it's usually the longest)
+        titleWidth = Math.max(15, titleWidth - overflow);
+
+        // If still overflowing, adjust other columns
+        totalUsed = channelWidth + titleWidth + dateWidth;
+        if (totalUsed > available) {
+          const remainingOverflow = totalUsed - available;
+          dateWidth = Math.max(8, dateWidth - Math.ceil(remainingOverflow / 2));
+          channelWidth = Math.max(
+            12,
+            channelWidth - Math.floor(remainingOverflow / 2)
+          );
         }
       }
-      
-      if (initialVideos.length > 0) {
-        prefetchThumbnails(initialVideos, thumbnailWidth, listHeight, maxInitialPrefetch);
-      }
+
+      return { channelWidth, titleWidth, dateWidth };
     }
-  }, [videos, flatList, showPreview]); // Remove layout dependencies to reduce re-runs
+  };
 
-  const selectedItem = flatList[selectedIndex];
-  const selectedVideo = selectedItem && !isVideoGroup(selectedItem) ? selectedItem as VideoItem : null;
+  const columnWidths = useMemo(
+    () => calculateColumnWidths(availableWidth),
+    [availableWidth]
+  );
 
-  // Prefetch thumbnails for upcoming videos when selection changes
   useEffect(() => {
-    if (showPreview && selectedIndex >= 0 && flatList.length > 0) {
-      // Get next few videos (skip groups) for prefetching
-      const upcomingVideos: VideoItem[] = [];
-      let count = 0;
-      const maxPrefetch = 3;
-      
-      for (let i = selectedIndex + 1; i < flatList.length && count < maxPrefetch; i++) {
-        const item = flatList[i];
-        if (item && !isVideoGroup(item)) {
-          upcomingVideos.push(item as VideoItem);
-          count++;
-        }
-      }
-      
-      if (upcomingVideos.length > 0) {
-        prefetchThumbnails(upcomingVideos, thumbnailWidth, listHeight, maxPrefetch);
-      }
+    if (videos.length > 0) {
+      setCurrentSelection(0);
+      setScrollOffset(0);
     }
-  }, [selectedIndex, flatList, showPreview]); // Remove layout dependencies to reduce re-runs
+  }, [videos]);
 
+  // Get currently selected video (simplified)
+  const selectedVideo = useMemo(() => {
+    return videos[currentSelection] || null;
+  }, [videos, currentSelection]);
+
+  // Simplified navigation for flat list
+  const navigateUp = () => {
+    if (videos.length === 0) return;
+    const newIndex = Math.max(0, currentSelection - 1);
+    setCurrentSelection(newIndex);
+  };
+
+  const navigateDown = () => {
+    if (videos.length === 0) return;
+    const newIndex = Math.min(videos.length - 1, currentSelection + 1);
+    setCurrentSelection(newIndex);
+  };
+
+  // Update scroll offset based on selection (simplified)
+  useEffect(() => {
+    if (currentSelection < scrollOffset) {
+      setScrollOffset(currentSelection);
+    } else if (currentSelection >= scrollOffset + listHeight) {
+      setScrollOffset(currentSelection - listHeight + 1);
+    }
+  }, [currentSelection, listHeight, scrollOffset]);
+
+  // Keyboard input handling
   useInput((input, key) => {
-    let newIndex = selectedIndex;
-    
     if (key.upArrow || input === "k") {
-      newIndex = selectedIndex - 1;
-      while (
-        newIndex >= 0 &&
-        isVideoGroup(flatList[newIndex] as VideoItem | VideoGroup)
-      ) {
-        newIndex--;
-      }
-      newIndex = Math.max(0, newIndex);
+      navigateUp();
     } else if (key.downArrow || input === "j") {
-      newIndex = selectedIndex + 1;
-      while (
-        newIndex < flatList.length &&
-        isVideoGroup(flatList[newIndex] as VideoItem | VideoGroup)
-      ) {
-        newIndex++;
-      }
-      newIndex = Math.min(flatList.length - 1, newIndex);
+      navigateDown();
     } else if (key.return || input === "o") {
-      if (selectedItem && !isVideoGroup(selectedItem)) {
-        onSelect(selectedItem as VideoItem);
+      if (selectedVideo) {
+        onSelect(selectedVideo);
       }
     } else if (input === "q" || key.escape) {
       onExit();
     } else if (input === "r") {
       onRefresh?.();
     } else if (input === "p") {
-      setShowPreview(prev => !prev);
-    }
-
-    // Update selected index
-    setSelectedIndex(newIndex);
-
-    // Update scroll offset to keep selected item in view
-    if (newIndex < scrollOffset) {
-      setScrollOffset(newIndex);
-    } else if (newIndex >= scrollOffset + listHeight) {
-      setScrollOffset(Math.max(0, newIndex - listHeight + 1));
+      togglePreview();
     }
   });
 
-  const visibleItems = flatList.slice(scrollOffset, scrollOffset + listHeight);
+  const renderVisibleItems = () => {
+    const items: React.ReactNode[] = [];
+    const startIndex = scrollOffset;
+    const endIndex = Math.min(startIndex + listHeight, videos.length);
+
+    for (let i = startIndex; i < endIndex; i++) {
+      const video = videos[i];
+      if (!video) continue; // Ensure video is not undefined
+      const isSelected = i === currentSelection;
+
+      items.push(
+        <VideoRow
+          key={video.videoId}
+          video={video}
+          isSelected={isSelected}
+          channelWidth={columnWidths.channelWidth}
+          titleWidth={columnWidths.titleWidth}
+          dateWidth={columnWidths.dateWidth}
+        />
+      );
+    }
+
+    return items;
+  };
 
   return (
-    <Box
-      flexDirection="column"
-      height={terminalHeight}
-      width={terminalWidth}
-    >
+    <Box flexDirection="column" height={terminalHeight} width={terminalWidth}>
       <AppHeader
         refreshing={refreshing}
         refreshStatus={refreshStatus}
@@ -189,30 +266,44 @@ export function VideoList({
         cacheAge={cacheAge}
       />
 
-      <Box flexDirection="row" flexGrow={1}>
-        <VideoListItems
-          visibleItems={visibleItems}
-          selectedIndex={selectedIndex}
-          scrollOffset={scrollOffset}
-          channelWidth={columnWidths.channelWidth}
-          titleWidth={columnWidths.titleWidth}
-          dateWidth={columnWidths.dateWidth}
-          listWidth={listWidth}
-        />
+      <Box flexDirection="row" flexGrow={1} marginTop={1}>
+        <Box flexDirection="column" width={listWidth} paddingX={1}>
+          {/* Column headers */}
+          <Box marginBottom={1} paddingX={1}>
+            <Box flexDirection="row" width="100%">
+              <Box width={columnWidths.channelWidth} marginRight={2}>
+                <Text color="gray" bold>
+                  CHANNEL
+                </Text>
+              </Box>
+              <Box width={columnWidths.titleWidth} marginRight={2}>
+                <Text color="gray" bold>
+                  TITLE
+                </Text>
+              </Box>
+              <Box width={columnWidths.dateWidth}>
+                <Text color="gray" bold>
+                  PUBLISHED
+                </Text>
+              </Box>
+            </Box>
+          </Box>
+
+          <Box flexDirection="column" height={listHeight} marginBottom={2}>
+            {renderVisibleItems()}
+          </Box>
+        </Box>
 
         {showPreview && (
           <ThumbnailPreview
             video={selectedVideo}
-            width={thumbnailWidth}
-            height={listHeight}
+            width={thumbnailWidth + 2}
+            height={listHeight + 2}
           />
         )}
       </Box>
 
-      <AppFooter
-        selectedVideo={selectedVideo}
-        listWidth={listWidth}
-      />
+      <AppFooter selectedVideo={selectedVideo} listWidth={terminalWidth} />
     </Box>
   );
 }
