@@ -4,11 +4,32 @@ import { VideoList } from "./VideoList";
 import { LoadingScreen } from "./LoadingScreen";
 import { useAppStore } from "../store/appStore";
 import type { VideoItem } from "../types";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function App() {
   const { stdout } = useStdout();
   const { exit } = useApp();
+  
+  // Centralized dimension handling with process.stdout listener
+  const [dimensions, setDimensions] = useState({ 
+    width: stdout?.columns || 80, 
+    height: stdout?.rows || 24 
+  });
+  
+  useEffect(() => {
+    const handleResize = () => {
+      const newWidth = process.stdout.columns || 80;
+      const newHeight = process.stdout.rows || 24;
+      setDimensions({ width: newWidth, height: newHeight });
+    };
+    
+    // Listen to process.stdout resize events
+    process.stdout.on('resize', handleResize);
+    
+    return () => {
+      process.stdout.off('resize', handleResize);
+    };
+  }, []);
 
   const store = useAppStore();
   const {
@@ -70,7 +91,7 @@ export function App() {
   if (error) {
     return (
       <Box
-        height={stdout?.rows || 24}
+        height={dimensions.height}
         justifyContent="center"
         alignItems="center"
       >
@@ -89,7 +110,7 @@ export function App() {
   }
 
   return (
-    <Box height={stdout?.rows || 24}>
+    <Box height={dimensions.height}>
       <VideoList
         videos={displayVideos}
         onSelect={handleVideoSelect}
@@ -100,6 +121,8 @@ export function App() {
         cacheAge={cacheAge}
         refreshProgress={refreshProgress}
         refreshStatus={refreshStatus}
+        terminalWidth={dimensions.width}
+        terminalHeight={dimensions.height}
       />
     </Box>
   );

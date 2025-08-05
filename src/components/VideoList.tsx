@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef, useState } from "react";
-import { Box, Text, useInput, useStdout } from "ink";
+import { Box, Text, useInput } from "ink";
 import { formatTimeAgo, getChannelColor } from "../utils/dateUtils";
 import { ThumbnailPreview } from "./ThumbnailPreview";
 import { AppHeader } from "./AppHeader";
@@ -17,6 +17,8 @@ interface VideoListProps {
   cacheAge?: number;
   refreshProgress?: { current: number; total: number };
   refreshStatus?: string;
+  terminalWidth: number;
+  terminalHeight: number;
 }
 
 interface VideoRowProps {
@@ -116,12 +118,9 @@ export function VideoList({
   cacheAge = 0,
   refreshProgress = { current: 0, total: 0 },
   refreshStatus = "",
+  terminalWidth,
+  terminalHeight,
 }: VideoListProps) {
-  const { stdout } = useStdout();
-
-  // Use stdout dimensions directly - let Ink handle resizing
-  const terminalWidth = stdout?.columns || 80;
-  const terminalHeight = stdout?.rows || 24;
 
   // Store state - declare these first!
   const [currentSelection, setCurrentSelection] = useState(0);
@@ -133,10 +132,6 @@ export function VideoList({
   );
   const isVideoInWatchLater = useAppStore((state) => state.isVideoInWatchLater);
 
-  // Reset scroll position when dimensions change to prevent UI issues
-  useEffect(() => {
-    setScrollOffset(0);
-  }, [terminalWidth, terminalHeight, setScrollOffset]);
 
   // Dynamic layout calculations with better space utilization
   const thumbnailWidth = showPreview
