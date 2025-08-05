@@ -44,6 +44,7 @@ bun run dev  # Run with file watching and hot reload
 - **Page Up/Page Down**: Jump through list faster
 - **Enter** or **o**: Open selected video in browser
 - **w**: Toggle Watch Later status for current video
+- **m**: Toggle watched status for current video (mark as watched/unwatched)
 - **l**: Toggle Watch Later filter (show only starred videos)
 - **c**: Show QR code modal for current video
 - **r**: Refresh data from YouTube RSS feeds

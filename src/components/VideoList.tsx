@@ -29,6 +29,7 @@ interface VideoRowProps {
   titleWidth: number;
   dateWidth: number;
   isInWatchLater: boolean;
+  isWatched: boolean;
 }
 
 function VideoRow({
@@ -38,6 +39,7 @@ function VideoRow({
   titleWidth,
   dateWidth,
   isInWatchLater,
+  isWatched,
 }: VideoRowProps) {
   const bgColor = isSelected ? "yellow" : "";
   const textColor = isSelected ? "black" : "white";
@@ -81,13 +83,16 @@ function VideoRow({
       {...(isSelected ? { backgroundColor: "yellow" } : {})}
     >
       <Box flexDirection="row" width="100%">
-        <Box width={2} marginRight={1} flexShrink={0}>
+        <Box width={3} marginRight={1} flexShrink={0}>
           <Text color={isSelected ? "black" : "yellow"}>
-            {isInWatchLater ? "★" : " "}
+            {isInWatchLater ? "★ " : "  "}
+          </Text>
+          <Text color={isSelected ? "black" : "cyan"}>
+            {isWatched ? "●" : "○"}
           </Text>
         </Box>
         <Box
-          width={channelWidth - 3}
+          width={channelWidth - 4}
           marginRight={2}
           flexShrink={0}
           overflow="hidden"
@@ -136,7 +141,10 @@ export function VideoList({
   const toggleVideoWatchLater = useAppStore(
     (state) => state.toggleVideoWatchLater
   );
+  const markVideoAsWatched = useAppStore((state) => state.markVideoAsWatched);
+  const toggleVideoWatchedStatus = useAppStore((state) => state.toggleVideoWatchedStatus);
   const isVideoInWatchLater = useAppStore((state) => state.isVideoInWatchLater);
+  const isVideoWatched = useAppStore((state) => state.isVideoWatched);
 
   // Filter videos based on watch later only mode
   const filteredVideos = useMemo(() => {
@@ -283,6 +291,8 @@ export function VideoList({
       pageDown();
     } else if (key.return || input === "o") {
       if (selectedVideo) {
+        // Mark video as watched before opening
+        markVideoAsWatched(selectedVideo.videoId);
         onSelect(selectedVideo);
       }
     } else if (input === "q" || key.escape) {
@@ -297,6 +307,10 @@ export function VideoList({
       }
     } else if (input === "l") {
       toggleWatchLaterOnly();
+    } else if (input === "m") {
+      if (selectedVideo) {
+        toggleVideoWatchedStatus(selectedVideo.videoId);
+      }
     } else if (input === "s") {
       if (selectedVideo) {
         setShowQRModal(true);
@@ -323,6 +337,7 @@ export function VideoList({
           titleWidth={columnWidths.titleWidth}
           dateWidth={columnWidths.dateWidth}
           isInWatchLater={isVideoInWatchLater(video.videoId)}
+          isWatched={isVideoWatched(video.videoId)}
         />
       );
     }
@@ -350,10 +365,10 @@ export function VideoList({
           {/* Column headers */}
           <Box marginBottom={1} paddingX={1}>
             <Box flexDirection="row" width="100%">
-              <Box width={2} marginRight={1}>
+              <Box width={3} marginRight={1}>
                 <Text color="gray" bold></Text>
               </Box>
-              <Box width={columnWidths.channelWidth - 3} marginRight={2}>
+              <Box width={columnWidths.channelWidth - 4} marginRight={2}>
                 <Text color="gray" bold>
                   CHANNEL
                 </Text>

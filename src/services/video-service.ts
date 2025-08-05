@@ -56,11 +56,19 @@ async function initDatabase() {
         FOREIGN KEY (video_id) REFERENCES videos(id)
       );
       
+      CREATE TABLE IF NOT EXISTS watch_history (
+        video_id TEXT NOT NULL,
+        watched_at INTEGER NOT NULL,
+        PRIMARY KEY (video_id),
+        FOREIGN KEY (video_id) REFERENCES videos(id)
+      );
+      
       CREATE INDEX IF NOT EXISTS idx_published ON videos(published);
       CREATE INDEX IF NOT EXISTS idx_cached_at ON videos(cached_at);
       CREATE INDEX IF NOT EXISTS idx_is_short ON videos(is_short);
       CREATE INDEX IF NOT EXISTS idx_playlist_videos_playlist ON playlist_videos(playlist_id);
       CREATE INDEX IF NOT EXISTS idx_playlist_videos_video ON playlist_videos(video_id);
+      CREATE INDEX IF NOT EXISTS idx_watch_history_watched_at ON watch_history(watched_at);
     `);
 
   // Add new columns to existing tables (migration)
@@ -158,6 +166,14 @@ function loadWatchLaterPlaylist(db: any): Set<string> {
   const stmt = db.prepare(`
     SELECT video_id FROM playlist_videos 
     WHERE playlist_id = 'watch_later'
+  `);
+  const rows = stmt.all();
+  return new Set(rows.map((row: any) => row.video_id));
+}
+
+function loadWatchHistory(db: any): Set<string> {
+  const stmt = db.prepare(`
+    SELECT video_id FROM watch_history
   `);
   const rows = stmt.all();
   return new Set(rows.map((row: any) => row.video_id));
@@ -276,10 +292,73 @@ export async function fetchVideos(
   // This matches the sorting in groupVideosByDays to avoid double sorting
   allVideos.sort((a, b) => b.published.getTime() - a.published.getTime());
 
-  // Load watch later playlist
+  // Load watch later playlist and watch history
   const watchLaterIds = loadWatchLaterPlaylist(db);
+  const watchedIds = loadWatchHistory(db);
 
   db.close();
 
-  return { videos: allVideos, subscriptions: subs, watchLaterIds };
+  return { videos: allVideos, subscriptions: subs, watchLaterIds, watchedIds };
+}
+
+export async function markVideoAsWatched(videoId: string): Promise<void> {
+  const db = await initDatabase();
+  
+  try {
+    // Insert or replace the watch history record
+    const stmt = db.prepare(`
+      INSERT OR REPLACE INTO watch_history (video_id, watched_at) 
+      VALUES (?, ?)
+    `);
+    
+    stmt.run(videoId, Date.now());
+  } finally {
+    db.close();
+  }
+}
+
+export async function markVideoAsUnwatched(videoId: string): Promise<void> {
+  const db = await initDatabase();
+  
+  try {
+    // Remove the video from watch history
+    const stmt = db.prepare(`
+      DELETE FROM watch_history WHERE video_id = ?
+    `);
+    
+    stmt.run(videoId);
+  } finally {
+    db.close();
+  }
+}
+
+export async function toggleWatchedStatus(videoId: string): Promise<boolean> {
+  const db = await initDatabase();
+  
+  try {
+    // Check if video is currently watched
+    const checkStmt = db.prepare(`
+      SELECT video_id FROM watch_history WHERE video_id = ?
+    `);
+    
+    const existing = checkStmt.get(videoId);
+    
+    if (existing) {
+      // Video is watched, mark as unwatched
+      const deleteStmt = db.prepare(`
+        DELETE FROM watch_history WHERE video_id = ?
+      `);
+      deleteStmt.run(videoId);
+      return false; // Now unwatched
+    } else {
+      // Video is unwatched, mark as watched
+      const insertStmt = db.prepare(`
+        INSERT INTO watch_history (video_id, watched_at) VALUES (?, ?)
+      `);
+      insertStmt.run(videoId, Date.now());
+      return true; // Now watched
+    }
+  } finally {
+    db.close();
+  }
 }

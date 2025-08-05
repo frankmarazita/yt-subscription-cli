@@ -54,7 +54,7 @@ function AppFooterComponent({
 
       <Box justifyContent="center">
         <Text color="gray">
-          ↑↓/jk: Navigate | PgUp/PgDn: Jump | Enter/o: Open | w: Watch Later | l: Filter Watch Later |
+          ↑↓/jk: Navigate | PgUp/PgDn: Jump | Enter/o: Open | w: Watch Later | m: Toggle Watched | l: Filter Watch Later |
           s: QR Code | r: Refresh | p: Preview | q/Esc: Quit
         </Text>
       </Box>

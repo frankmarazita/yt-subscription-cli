@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { fetchVideos, toggleWatchLater } from "../services/video-service";
+import { fetchVideos, toggleWatchLater, markVideoAsWatched, toggleWatchedStatus } from "../services/video-service";
 import type { VideoItem, Subscription } from "../types";
 
 interface AppState {
@@ -7,6 +7,7 @@ interface AppState {
   videos: VideoItem[];
   subscriptions: Subscription[];
   watchLaterIds: Set<string>;
+  watchedIds: Set<string>;
 
   // Loading states
   loading: boolean;
@@ -37,7 +38,10 @@ interface AppState {
   getThumbnailFromCache: (videoId: string) => string | undefined;
   clearError: () => void;
   toggleVideoWatchLater: (videoId: string) => Promise<void>;
+  markVideoAsWatched: (videoId: string) => Promise<void>;
+  toggleVideoWatchedStatus: (videoId: string) => Promise<void>;
   isVideoInWatchLater: (videoId: string) => boolean;
+  isVideoWatched: (videoId: string) => boolean;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -45,6 +49,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   videos: [],
   subscriptions: [],
   watchLaterIds: new Set(),
+  watchedIds: new Set(),
   loading: false,
   refreshing: false,
   error: null,
@@ -87,6 +92,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         videos: [...result.videos], // Create new array reference
         subscriptions: [...result.subscriptions], // Create new array reference
         watchLaterIds: new Set(result.watchLaterIds), // Create new Set reference
+        watchedIds: new Set(result.watchedIds), // Create new Set reference
         loading: false,
         refreshing: false,
         lastUpdated: new Date(),
@@ -149,7 +155,49 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  markVideoAsWatched: async (videoId: string) => {
+    try {
+      await markVideoAsWatched(videoId);
+      // Update local state immediately
+      set((state) => {
+        const newWatchedIds = new Set(state.watchedIds);
+        newWatchedIds.add(videoId);
+        return { watchedIds: newWatchedIds };
+      });
+    } catch (err) {
+      set({
+        error:
+          err instanceof Error ? err.message : "Failed to mark video as watched",
+      });
+    }
+  },
+
+  toggleVideoWatchedStatus: async (videoId: string) => {
+    try {
+      const isNowWatched = await toggleWatchedStatus(videoId);
+      // Update local state immediately
+      set((state) => {
+        const newWatchedIds = new Set(state.watchedIds);
+        if (isNowWatched) {
+          newWatchedIds.add(videoId);
+        } else {
+          newWatchedIds.delete(videoId);
+        }
+        return { watchedIds: newWatchedIds };
+      });
+    } catch (err) {
+      set({
+        error:
+          err instanceof Error ? err.message : "Failed to toggle watched status",
+      });
+    }
+  },
+
   isVideoInWatchLater: (videoId: string) => {
     return get().watchLaterIds.has(videoId);
+  },
+
+  isVideoWatched: (videoId: string) => {
+    return get().watchedIds.has(videoId);
   },
 }));
