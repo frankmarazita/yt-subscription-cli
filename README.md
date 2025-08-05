@@ -13,6 +13,10 @@ A terminal-based YouTube subscription manager built with React Ink. Browse your 
 - **YouTube Shorts detection** and filtering
 - **Background thumbnail prefetching** for smooth navigation
 - **Toggle thumbnail preview** on/off during use
+- **Watch Later playlist** with keyboard shortcuts
+- **QR code modal** for easy mobile access to videos
+- **Enhanced metadata** with view counts, like counts, and descriptions
+- **Responsive terminal UI** that adapts to window resizing
 
 ## Installation
 
@@ -37,7 +41,10 @@ bun run dev  # Run with file watching and hot reload
 ## Controls
 
 - **↑/↓** or **j/k**: Navigate through videos
+- **Page Up/Page Down**: Jump through list faster
 - **Enter** or **o**: Open selected video in browser
+- **Space**: Toggle Watch Later status for current video
+- **c**: Show QR code modal for current video
 - **r**: Refresh data from YouTube RSS feeds
 - **p**: Toggle thumbnail preview on/off
 - **q** or **Esc**: Quit application
