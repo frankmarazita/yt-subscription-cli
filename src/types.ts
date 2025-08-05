@@ -6,6 +6,7 @@ export interface VideoItem {
   publishedFormatted: string;
   publishedDateTime: string;
   isShort: boolean;
+  thumbnailUrl?: string;
 }
 
 export interface VideoGroup {
@@ -21,8 +22,4 @@ export interface Subscription {
   };
 }
 
-export interface AppProps {
-  useCache: boolean;
-  maxChannels?: number;
-  includeShorts: boolean;
-}
+

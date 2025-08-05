@@ -4,10 +4,29 @@ import type { VideoItem, Subscription } from "./types";
 
 export async function loadSubscriptions(): Promise<Subscription[]> {
   try {
-    const data = await readFile("./subscriptions.json", "utf-8");
-    return JSON.parse(data);
+    const data = await readFile("./subscriptions.csv", "utf-8");
+    const lines = data.trim().split('\n');
+    const subscriptions: Subscription[] = [];
+    
+    // Skip header row
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      const [channelId, channelUrl, channelTitle] = line.split(',');
+      if (channelId && channelTitle) {
+        subscriptions.push({
+          snippet: {
+            channelId: channelId.trim(),
+            title: channelTitle.trim()
+          }
+        });
+      }
+    }
+    
+    return subscriptions;
   } catch (error) {
-    throw new Error("Failed to load subscriptions.json");
+    throw new Error("Failed to load subscriptions.csv");
   }
 }
 
@@ -39,6 +58,22 @@ export async function fetchRSSFeed(
           const publishedDate = new Date(entry.published[0]);
           const link = entry.link[0].$.href;
           const isShort = link.includes("/shorts/");
+          
+          // Extract thumbnail URL from media:group > media:thumbnail
+          let thumbnailUrl: string | undefined;
+          if (entry["media:group"] && entry["media:group"][0]["media:thumbnail"]) {
+            const thumbnails = entry["media:group"][0]["media:thumbnail"];
+            // Use the highest quality thumbnail (last one in the array)
+            thumbnailUrl = thumbnails[thumbnails.length - 1]?.$.url;
+          }
+          
+          // Fallback: generate thumbnail URL from video ID if not found in RSS
+          if (!thumbnailUrl) {
+            const videoIdMatch = link.match(/[?&]v=([^&]+)/);
+            if (videoIdMatch) {
+              thumbnailUrl = `https://img.youtube.com/vi/${videoIdMatch[1]}/mqdefault.jpg`;
+            }
+          }
 
           videos.push({
             title: entry.title[0],
@@ -48,6 +83,7 @@ export async function fetchRSSFeed(
             publishedFormatted: publishedDate.toLocaleDateString(),
             publishedDateTime: publishedDate.toLocaleString(),
             isShort,
+            thumbnailUrl,
           });
         }
 

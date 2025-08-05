@@ -35,4 +35,5 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # other
 cache.db
-subscriptions.json
+subscriptions.csv
+*.local*

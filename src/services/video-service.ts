@@ -5,6 +5,7 @@ import type { VideoItem, Subscription } from "../types";
 export interface VideoServiceOptions {
   onProgress?: (current: number, total: number) => void;
   onStatusChange?: (status: string) => void;
+  forceRefresh?: boolean;
 }
 
 export interface VideoServiceResult {
@@ -15,7 +16,7 @@ export interface VideoServiceResult {
 export async function fetchVideos(
   options: VideoServiceOptions
 ): Promise<VideoServiceResult> {
-  const { onProgress, onStatusChange } = options;
+  const { onProgress, onStatusChange, forceRefresh = false } = options;
 
   onStatusChange?.("Loading subscriptions...");
   let subs = await loadSubscriptions();
@@ -23,10 +24,16 @@ export async function fetchVideos(
   let allVideos: VideoItem[] = [];
   const db = await initDatabase();
 
-  onStatusChange?.("Checking cache...");
-  allVideos = loadFromCache(db);
+  if (!forceRefresh) {
+    onStatusChange?.("Checking cache...");
+    allVideos = loadFromCache(db);
+  }
 
-  if (allVideos.length === 0) {
+  if (allVideos.length === 0 || forceRefresh) {
+    if (forceRefresh) {
+      allVideos = []; // Clear existing videos when force refreshing
+    }
+    
     onStatusChange?.("Fetching videos from RSS feeds...");
     onProgress?.(0, subs.length);
 

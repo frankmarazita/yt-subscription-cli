@@ -68,6 +68,7 @@ export function useVideoData(
         onStatusChange: (status) => {
           setState((prev) => ({ ...prev, refreshStatus: status }));
         },
+        forceRefresh: isRefresh,
       });
 
       setState((prev) => ({

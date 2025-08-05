@@ -1,15 +1,18 @@
 # YouTube Subscription CLI
 
-A terminal-based YouTube subscription manager built with React Ink. Browse your YouTube subscriptions directly from the command line.
+A terminal-based YouTube subscription manager built with React Ink. Browse your YouTube subscriptions directly from the command line with thumbnail previews.
 
 ## Features
 
-- Browse your YouTube subscriptions in an interactive terminal interface
-- Cache system for fast loading
-- Keyboard navigation
-- Open videos directly in your default browser
-- Auto-refresh functionality
-- Detailed and simple view modes
+- **Interactive terminal interface** for browsing YouTube subscriptions
+- **Thumbnail previews** in supported terminals (iTerm2, Kitty, etc.)
+- **Smart caching system** with SQLite for fast loading and offline access
+- **Keyboard navigation** with vim-like controls
+- **Auto-refresh functionality** with progress indicators
+- **Video grouping** by date (Today, Yesterday, This Week, etc.)
+- **YouTube Shorts detection** and filtering
+- **Background thumbnail prefetching** for smooth navigation
+- **Toggle thumbnail preview** on/off during use
 
 ## Installation
 
@@ -22,45 +25,56 @@ bun install
 ### Start the CLI
 
 ```bash
-npm start
-```
-
-### Command Line Options
-
-```bash
-npm start [options]
-
-Options:
-  --no-cache          Skip cache and fetch fresh data
-  -l, --limit <n>     Only fetch first N channels
-  --include-shorts    Include YouTube Shorts in results
-  -v, --verbose       Use detailed multi-line format
-  -h, --help          Show help
+bun start
 ```
 
 ### Development
 
 ```bash
-bun run dev  # Run with file watching
+bun run dev  # Run with file watching and hot reload
 ```
 
 ## Controls
 
 - **↑/↓** or **j/k**: Navigate through videos
-- **Enter**: Open selected video in browser
-- **r**: Refresh data
-- **q**: Quit application
+- **Enter** or **o**: Open selected video in browser
+- **r**: Refresh data from YouTube RSS feeds
+- **p**: Toggle thumbnail preview on/off
+- **q** or **Esc**: Quit application
 
-## Requirements
+## Setup
 
-- Node.js
-- A YouTube subscription export file (`subscriptions.json`)
-- Default browser configured for opening links
+1. Export your YouTube subscriptions:
+   - Go to [Google Takeout](https://takeout.google.com)
+   - Select YouTube and YouTube Music
+   - Download and extract the data
+   - Copy `subscriptions.csv` to the project root
+
+2. The app will automatically create a cache database (`cache.db`) on first run
+
+## Thumbnail Support
+
+The app displays video thumbnails in terminals that support image protocols:
+- **iTerm2** (macOS)
+- **Kitty** (cross-platform)
+- **Wezterm** (cross-platform)
+- Other terminals with sixel or similar image support
+
+In unsupported terminals, thumbnails appear as colored ASCII blocks.
 
 ## Tech Stack
 
 - **Runtime**: Bun
-- **UI**: React with Ink (terminal UI)
-- **Database**: SQLite (better-sqlite3)
-- **CLI**: yargs
+- **UI**: React with Ink (terminal UI framework)
+- **Database**: Bun's built-in SQLite
+- **Image Display**: terminal-image
+- **XML Parsing**: xml2js
 - **Language**: TypeScript
+
+## Architecture
+
+The app uses a modular React component architecture:
+- **Memoized components** to prevent unnecessary re-renders
+- **Background thumbnail caching** with LRU eviction
+- **Prefetching system** for smooth navigation
+- **SQLite persistence** for offline access and performance

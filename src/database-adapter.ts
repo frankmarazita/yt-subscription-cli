@@ -1,8 +1,17 @@
 import type { VideoItem } from "./types";
 
+function generateFallbackThumbnailUrl(videoLink: string): string | undefined {
+  // Extract video ID from YouTube URL and generate thumbnail URL
+  const videoIdMatch = videoLink.match(/[?&]v=([^&]+)/) || videoLink.match(/\/shorts\/([^?&]+)/);
+  if (videoIdMatch) {
+    return `https://img.youtube.com/vi/${videoIdMatch[1]}/mqdefault.jpg`;
+  }
+  return undefined;
+}
+
 export async function initDatabase() {
-  const BetterSqlite3 = (await import("better-sqlite3")).default;
-  const db = new BetterSqlite3("./cache.db");
+  const { Database } = await import("bun:sqlite");
+  const db = new Database("./cache.db");
 
   db.exec(`
       CREATE TABLE IF NOT EXISTS videos (
@@ -12,6 +21,7 @@ export async function initDatabase() {
         link TEXT NOT NULL,
         published INTEGER NOT NULL,
         is_short BOOLEAN NOT NULL DEFAULT 0,
+        thumbnail_url TEXT,
         cached_at INTEGER NOT NULL
       );
       
@@ -19,6 +29,13 @@ export async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_cached_at ON videos(cached_at);
       CREATE INDEX IF NOT EXISTS idx_is_short ON videos(is_short);
     `);
+
+  // Add thumbnail_url column to existing tables (migration)
+  try {
+    db.run(`ALTER TABLE videos ADD COLUMN thumbnail_url TEXT`);
+  } catch (err) {
+    // Column already exists, ignore error
+  }
 
   return db;
 }
@@ -29,15 +46,12 @@ export function loadFromCache(
 ): VideoItem[] {
   const cutoff = Date.now() - maxAge;
 
-  const videos = db
-    .prepare(
-      `
+  const stmt = db.prepare(`
     SELECT * FROM videos 
     WHERE cached_at > ? 
     ORDER BY published ASC
-  `
-    )
-    .all(cutoff);
+  `);
+  const videos = stmt.all(cutoff);
 
   return videos.map((v: any) => ({
     title: v.title,
@@ -47,18 +61,19 @@ export function loadFromCache(
     publishedFormatted: new Date(v.published).toLocaleDateString(),
     publishedDateTime: new Date(v.published).toLocaleString(),
     isShort: Boolean(v.is_short),
+    thumbnailUrl: v.thumbnail_url || generateFallbackThumbnailUrl(v.link),
   }));
 }
 
 export function saveToCache(db: any, videos: VideoItem[]): void {
   const insert = db.prepare(`
-    INSERT OR REPLACE INTO videos (id, title, channel, link, published, is_short, cached_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO videos (id, title, channel, link, published, is_short, thumbnail_url, cached_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const now = Date.now();
 
-  const transaction = db.transaction((videos: VideoItem[]) => {
+  db.transaction(() => {
     for (const video of videos) {
       const id =
         video.link.split("watch?v=")[1] ||
@@ -71,10 +86,9 @@ export function saveToCache(db: any, videos: VideoItem[]): void {
         video.link,
         video.published.getTime(),
         video.isShort ? 1 : 0,
+        video.thumbnailUrl || null,
         now
       );
     }
-  });
-
-  transaction(videos);
+  })();
 }
