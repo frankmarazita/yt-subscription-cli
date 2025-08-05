@@ -213,6 +213,20 @@ export function VideoList({
     setCurrentSelection(newIndex);
   };
 
+  const pageUp = () => {
+    if (videos.length === 0) return;
+    const pageSize = Math.max(1, listHeight - 1);
+    const newIndex = Math.max(0, currentSelection - pageSize);
+    setCurrentSelection(newIndex);
+  };
+
+  const pageDown = () => {
+    if (videos.length === 0) return;
+    const pageSize = Math.max(1, listHeight - 1);
+    const newIndex = Math.min(videos.length - 1, currentSelection + pageSize);
+    setCurrentSelection(newIndex);
+  };
+
   // Update scroll offset based on selection (simplified)
   useEffect(() => {
     if (currentSelection < scrollOffset) {
@@ -228,6 +242,10 @@ export function VideoList({
       navigateUp();
     } else if (key.downArrow || input === "j") {
       navigateDown();
+    } else if (key.pageUp) {
+      pageUp();
+    } else if (key.pageDown) {
+      pageDown();
     } else if (key.return || input === "o") {
       if (selectedVideo) {
         onSelect(selectedVideo);
