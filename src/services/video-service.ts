@@ -13,7 +13,7 @@ function generateFallbackThumbnailUrl(videoLink: string): string | undefined {
 
 async function initDatabase() {
   const { Database } = await import("bun:sqlite");
-  const db = new Database("./cache.db");
+  const db = new Database("./app.db");
 
   db.exec(`
       CREATE TABLE IF NOT EXISTS videos (
@@ -27,9 +27,28 @@ async function initDatabase() {
         cached_at INTEGER NOT NULL
       );
       
+      CREATE TABLE IF NOT EXISTS playlists (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      
+      CREATE TABLE IF NOT EXISTS playlist_videos (
+        playlist_id TEXT NOT NULL,
+        video_id TEXT NOT NULL,
+        added_at INTEGER NOT NULL,
+        order_index INTEGER,
+        PRIMARY KEY (playlist_id, video_id),
+        FOREIGN KEY (playlist_id) REFERENCES playlists(id),
+        FOREIGN KEY (video_id) REFERENCES videos(id)
+      );
+      
       CREATE INDEX IF NOT EXISTS idx_published ON videos(published);
       CREATE INDEX IF NOT EXISTS idx_cached_at ON videos(cached_at);
       CREATE INDEX IF NOT EXISTS idx_is_short ON videos(is_short);
+      CREATE INDEX IF NOT EXISTS idx_playlist_videos_playlist ON playlist_videos(playlist_id);
+      CREATE INDEX IF NOT EXISTS idx_playlist_videos_video ON playlist_videos(video_id);
     `);
 
   // Add thumbnail_url column to existing tables (migration)
@@ -38,6 +57,16 @@ async function initDatabase() {
   } catch (err) {
     // Column already exists, ignore error
   }
+
+  // Initialize watch later playlist
+  const now = Date.now();
+  db.run(
+    `
+    INSERT OR IGNORE INTO playlists (id, name, created_at, updated_at)
+    VALUES ('watch_later', 'Watch Later', ?, ?)
+  `,
+    [now, now]
+  );
 
   return db;
 }
@@ -89,6 +118,45 @@ function saveToCache(db: any, videos: VideoItem[]): void {
   })();
 }
 
+function loadWatchLaterPlaylist(db: any): Set<string> {
+  const stmt = db.prepare(`
+    SELECT video_id FROM playlist_videos 
+    WHERE playlist_id = 'watch_later'
+  `);
+  const rows = stmt.all();
+  return new Set(rows.map((row: any) => row.video_id));
+}
+
+export async function toggleWatchLater(videoId: string): Promise<boolean> {
+  const db = await initDatabase();
+
+  const checkStmt = db.prepare(`
+    SELECT 1 FROM playlist_videos 
+    WHERE playlist_id = 'watch_later' AND video_id = ?
+  `);
+  const exists = checkStmt.get(videoId);
+
+  if (exists) {
+    // Remove from watch later
+    const deleteStmt = db.prepare(`
+      DELETE FROM playlist_videos 
+      WHERE playlist_id = 'watch_later' AND video_id = ?
+    `);
+    deleteStmt.run(videoId);
+    db.close();
+    return false;
+  } else {
+    // Add to watch later
+    const insertStmt = db.prepare(`
+      INSERT INTO playlist_videos (playlist_id, video_id, added_at, order_index)
+      VALUES ('watch_later', ?, ?, NULL)
+    `);
+    insertStmt.run(videoId, Date.now());
+    db.close();
+    return true;
+  }
+}
+
 export interface VideoServiceOptions {
   onProgress?: (current: number, total: number) => void;
   onStatusChange?: (status: string) => void;
@@ -98,6 +166,7 @@ export interface VideoServiceOptions {
 export interface VideoServiceResult {
   videos: VideoItem[];
   subscriptions: Subscription[];
+  watchLaterIds: Set<string>;
 }
 
 export async function fetchVideos(
@@ -171,7 +240,10 @@ export async function fetchVideos(
   // This matches the sorting in groupVideosByDays to avoid double sorting
   allVideos.sort((a, b) => b.published.getTime() - a.published.getTime());
 
+  // Load watch later playlist
+  const watchLaterIds = loadWatchLaterPlaylist(db);
+
   db.close();
 
-  return { videos: allVideos, subscriptions: subs };
+  return { videos: allVideos, subscriptions: subs, watchLaterIds };
 }

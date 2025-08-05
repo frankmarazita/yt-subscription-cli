@@ -1,11 +1,12 @@
 import { create } from "zustand";
-import { fetchVideos } from "../services/video-service";
+import { fetchVideos, toggleWatchLater } from "../services/video-service";
 import type { VideoItem, Subscription } from "../types";
 
 interface AppState {
   // Video data
   videos: VideoItem[];
   subscriptions: Subscription[];
+  watchLaterIds: Set<string>;
 
   // Loading states
   loading: boolean;
@@ -33,12 +34,15 @@ interface AppState {
   setThumbnailCache: (videoId: string, thumbnailData: string) => void;
   getThumbnailFromCache: (videoId: string) => string | undefined;
   clearError: () => void;
+  toggleVideoWatchLater: (videoId: string) => Promise<void>;
+  isVideoInWatchLater: (videoId: string) => boolean;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
   // Initial state
   videos: [],
   subscriptions: [],
+  watchLaterIds: new Set(),
   loading: false,
   refreshing: false,
   error: null,
@@ -79,6 +83,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         videos: [...result.videos], // Create new array reference
         subscriptions: [...result.subscriptions], // Create new array reference
+        watchLaterIds: new Set(result.watchLaterIds), // Create new Set reference
         loading: false,
         refreshing: false,
         lastUpdated: new Date(),
@@ -115,5 +120,29 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   clearError: () => {
     set({ error: null });
+  },
+
+  toggleVideoWatchLater: async (videoId: string) => {
+    try {
+      const isAdded = await toggleWatchLater(videoId);
+      set((state) => {
+        const newWatchLaterIds = new Set(state.watchLaterIds);
+        if (isAdded) {
+          newWatchLaterIds.add(videoId);
+        } else {
+          newWatchLaterIds.delete(videoId);
+        }
+        return { watchLaterIds: newWatchLaterIds };
+      });
+    } catch (err) {
+      set({
+        error:
+          err instanceof Error ? err.message : "Failed to toggle watch later",
+      });
+    }
+  },
+
+  isVideoInWatchLater: (videoId: string) => {
+    return get().watchLaterIds.has(videoId);
   },
 }));

@@ -1,6 +1,5 @@
 import React, { useMemo, useEffect, useRef, useState } from "react";
 import { Box, Text, useInput, useStdout } from "ink";
-import emojiStrip from "emoji-strip";
 import { formatTimeAgo, getChannelColor } from "../utils/dateUtils";
 import { ThumbnailPreview } from "./ThumbnailPreview";
 import { AppHeader } from "./AppHeader";
@@ -26,6 +25,7 @@ interface VideoRowProps {
   channelWidth: number;
   titleWidth: number;
   dateWidth: number;
+  isInWatchLater: boolean;
 }
 
 function VideoRow({
@@ -34,6 +34,7 @@ function VideoRow({
   channelWidth,
   titleWidth,
   dateWidth,
+  isInWatchLater,
 }: VideoRowProps) {
   const bgColor = isSelected ? "yellow" : "";
   const textColor = isSelected ? "black" : "white";
@@ -60,8 +61,13 @@ function VideoRow({
       {...(isSelected ? { backgroundColor: "yellow" } : {})}
     >
       <Box flexDirection="row" width="100%">
+        <Box width={2} marginRight={1} flexShrink={0}>
+          <Text color={isSelected ? "black" : "yellow"}>
+            {isInWatchLater ? "★" : " "}
+          </Text>
+        </Box>
         <Box
-          width={channelWidth}
+          width={channelWidth - 3}
           marginRight={2}
           flexShrink={0}
           overflow="hidden"
@@ -106,6 +112,10 @@ export function VideoList({
   const [scrollOffset, setScrollOffset] = useState(0);
   const showPreview = useAppStore((state) => state.showPreview);
   const togglePreview = useAppStore((state) => state.togglePreview);
+  const toggleVideoWatchLater = useAppStore(
+    (state) => state.toggleVideoWatchLater
+  );
+  const isVideoInWatchLater = useAppStore((state) => state.isVideoInWatchLater);
 
   // Reset scroll position when dimensions change to prevent UI issues
   useEffect(() => {
@@ -228,6 +238,10 @@ export function VideoList({
       onRefresh?.();
     } else if (input === "p") {
       togglePreview();
+    } else if (input === "w") {
+      if (selectedVideo) {
+        toggleVideoWatchLater(selectedVideo.videoId);
+      }
     }
   });
 
@@ -249,6 +263,7 @@ export function VideoList({
           channelWidth={columnWidths.channelWidth}
           titleWidth={columnWidths.titleWidth}
           dateWidth={columnWidths.dateWidth}
+          isInWatchLater={isVideoInWatchLater(video.videoId)}
         />
       );
     }
@@ -271,7 +286,10 @@ export function VideoList({
           {/* Column headers */}
           <Box marginBottom={1} paddingX={1}>
             <Box flexDirection="row" width="100%">
-              <Box width={columnWidths.channelWidth} marginRight={2}>
+              <Box width={2} marginRight={1}>
+                <Text color="gray" bold></Text>
+              </Box>
+              <Box width={columnWidths.channelWidth - 3} marginRight={2}>
                 <Text color="gray" bold>
                   CHANNEL
                 </Text>
