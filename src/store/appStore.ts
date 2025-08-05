@@ -23,6 +23,7 @@ interface AppState {
 
   // UI state
   showPreview: boolean;
+  showWatchLaterOnly: boolean;
 
   // Thumbnail cache
   thumbnailCache: Map<string, string>;
@@ -31,6 +32,7 @@ interface AppState {
   loadVideos: (forceRefresh?: boolean) => Promise<void>;
   refresh: () => Promise<void>;
   togglePreview: () => void;
+  toggleWatchLaterOnly: () => void;
   setThumbnailCache: (videoId: string, thumbnailData: string) => void;
   getThumbnailFromCache: (videoId: string) => string | undefined;
   clearError: () => void;
@@ -51,6 +53,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   lastUpdated: null,
   cacheAge: 0,
   showPreview: true,
+  showWatchLaterOnly: false,
   thumbnailCache: new Map(),
 
   // Actions
@@ -104,6 +107,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   togglePreview: () => {
     set((state) => ({ showPreview: !state.showPreview }));
+  },
+
+  toggleWatchLaterOnly: () => {
+    set((state) => ({ showWatchLaterOnly: !state.showWatchLaterOnly }));
   },
 
   setThumbnailCache: (videoId: string, thumbnailData: string) => {

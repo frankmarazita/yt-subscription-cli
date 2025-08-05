@@ -128,11 +128,23 @@ export function VideoList({
   const [scrollOffset, setScrollOffset] = useState(0);
   const [showQRModal, setShowQRModal] = useState(false);
   const showPreview = useAppStore((state) => state.showPreview);
+  const showWatchLaterOnly = useAppStore((state) => state.showWatchLaterOnly);
   const togglePreview = useAppStore((state) => state.togglePreview);
+  const toggleWatchLaterOnly = useAppStore(
+    (state) => state.toggleWatchLaterOnly
+  );
   const toggleVideoWatchLater = useAppStore(
     (state) => state.toggleVideoWatchLater
   );
   const isVideoInWatchLater = useAppStore((state) => state.isVideoInWatchLater);
+
+  // Filter videos based on watch later only mode
+  const filteredVideos = useMemo(() => {
+    if (showWatchLaterOnly) {
+      return videos.filter((video) => isVideoInWatchLater(video.videoId));
+    }
+    return videos;
+  }, [videos, showWatchLaterOnly, isVideoInWatchLater]);
 
   // Dynamic layout calculations with better space utilization
   const thumbnailWidth = showPreview
@@ -201,46 +213,49 @@ export function VideoList({
   );
 
   useEffect(() => {
-    if (videos.length > 0) {
+    if (filteredVideos.length > 0) {
       setCurrentSelection(0);
       setScrollOffset(0);
     }
-  }, [videos]);
+  }, [filteredVideos]);
 
   // Get currently selected video (simplified)
   const selectedVideo = useMemo(() => {
-    return videos[currentSelection] || null;
-  }, [videos, currentSelection]);
+    return filteredVideos[currentSelection] || null;
+  }, [filteredVideos, currentSelection]);
 
   // Get next video for preloading
   const nextVideo = useMemo(() => {
-    return videos[currentSelection + 1] || null;
-  }, [videos, currentSelection]);
+    return filteredVideos[currentSelection + 1] || null;
+  }, [filteredVideos, currentSelection]);
 
   // Simplified navigation for flat list
   const navigateUp = () => {
-    if (videos.length === 0) return;
+    if (filteredVideos.length === 0) return;
     const newIndex = Math.max(0, currentSelection - 1);
     setCurrentSelection(newIndex);
   };
 
   const navigateDown = () => {
-    if (videos.length === 0) return;
-    const newIndex = Math.min(videos.length - 1, currentSelection + 1);
+    if (filteredVideos.length === 0) return;
+    const newIndex = Math.min(filteredVideos.length - 1, currentSelection + 1);
     setCurrentSelection(newIndex);
   };
 
   const pageUp = () => {
-    if (videos.length === 0) return;
+    if (filteredVideos.length === 0) return;
     const pageSize = Math.max(1, listHeight - 1);
     const newIndex = Math.max(0, currentSelection - pageSize);
     setCurrentSelection(newIndex);
   };
 
   const pageDown = () => {
-    if (videos.length === 0) return;
+    if (filteredVideos.length === 0) return;
     const pageSize = Math.max(1, listHeight - 1);
-    const newIndex = Math.min(videos.length - 1, currentSelection + pageSize);
+    const newIndex = Math.min(
+      filteredVideos.length - 1,
+      currentSelection + pageSize
+    );
     setCurrentSelection(newIndex);
   };
 
@@ -280,6 +295,8 @@ export function VideoList({
       if (selectedVideo) {
         toggleVideoWatchLater(selectedVideo.videoId);
       }
+    } else if (input === "l") {
+      toggleWatchLaterOnly();
     } else if (input === "s") {
       if (selectedVideo) {
         setShowQRModal(true);
@@ -290,10 +307,10 @@ export function VideoList({
   const renderVisibleItems = () => {
     const items: React.ReactNode[] = [];
     const startIndex = scrollOffset;
-    const endIndex = Math.min(startIndex + listHeight, videos.length);
+    const endIndex = Math.min(startIndex + listHeight, filteredVideos.length);
 
     for (let i = startIndex; i < endIndex; i++) {
-      const video = videos[i];
+      const video = filteredVideos[i];
       if (!video) continue; // Ensure video is not undefined
       const isSelected = i === currentSelection;
 
@@ -371,7 +388,13 @@ export function VideoList({
         )}
       </Box>
 
-      <AppFooter selectedVideo={selectedVideo} listWidth={terminalWidth} />
+      <AppFooter 
+        selectedVideo={selectedVideo} 
+        listWidth={terminalWidth}
+        showWatchLaterOnly={showWatchLaterOnly}
+        watchLaterCount={filteredVideos.length}
+        totalVideoCount={videos.length}
+      />
 
       <QRCodeModal
         video={selectedVideo}
