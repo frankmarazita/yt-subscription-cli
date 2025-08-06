@@ -41,8 +41,7 @@ function VideoRow({
   isInWatchLater,
   isWatched,
 }: VideoRowProps) {
-  const bgColor = isSelected ? "yellow" : "";
-  const textColor = isSelected ? "black" : "white";
+  const textColor = isSelected ? "yellow" : "white";
 
   const truncate = (text: string, max: number) => {
     if (!text) return "";
@@ -50,8 +49,8 @@ function VideoRow({
     return text.substring(0, max - 3) + "...";
   };
 
-  const channelColor = isSelected ? "black" : getChannelColor(video.channel);
-  const titleColor = textColor;
+  const channelColor = getChannelColor(video.channel);
+  const titleColor = isSelected ? "yellow" : "white";
 
   // Color dates based on age
   const now = new Date();
@@ -59,9 +58,7 @@ function VideoRow({
   const hoursAgo = timeDiff / (1000 * 60 * 60);
 
   let dateColor = "green"; // default
-  if (isSelected) {
-    dateColor = "black";
-  } else if (hoursAgo < 2) {
+  if (hoursAgo < 2) {
     dateColor = "red"; // very recent
   } else if (hoursAgo < 24) {
     dateColor = "yellow"; // today
@@ -84,10 +81,10 @@ function VideoRow({
     >
       <Box flexDirection="row" width="100%">
         <Box width={3} marginRight={1} flexShrink={0}>
-          <Text color={isSelected ? "black" : "yellow"}>
+          <Text color="yellow">
             {isInWatchLater ? "★ " : "  "}
           </Text>
-          <Text color={isSelected ? "black" : "cyan"}>
+          <Text color="cyan">
             {isWatched ? "●" : "○"}
           </Text>
         </Box>
@@ -105,7 +102,7 @@ function VideoRow({
           flexShrink={0}
           overflow="hidden"
         >
-          <Text color={titleColor}>{displayTitle}</Text>
+          <Text color={titleColor} underline={isSelected}>{displayTitle}</Text>
         </Box>
         <Box width={dateWidth} flexShrink={0} overflow="hidden">
           <Text color={dateColor}>{displayTime}</Text>
