@@ -22,11 +22,13 @@ export function ThumbnailPreview({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
 
-  // Use store for thumbnail cache
+  // Use store for thumbnail cache and video status
   const getThumbnailFromCache = useAppStore(
     (state) => state.getThumbnailFromCache
   );
   const setThumbnailCache = useAppStore((state) => state.setThumbnailCache);
+  const isVideoInWatchLater = useAppStore((state) => state.isVideoInWatchLater);
+  const isVideoWatched = useAppStore((state) => state.isVideoWatched);
 
   // Memoize stable dimensions with better scaling increments
   const stableDimensions = useMemo(
@@ -225,19 +227,35 @@ export function ThumbnailPreview({
               <Text color="gray">{truncateText(video.channel, width - 4)}</Text>
             </Box>
 
+            {/* Status indicators */}
+            {video && (isVideoWatched(video.videoId) || isVideoInWatchLater(video.videoId)) && (
+              <Box marginTop={1} width="100%" overflow="hidden">
+                <Text>
+                  {isVideoInWatchLater(video.videoId) && (
+                    <Text color="yellow">★ </Text>
+                  )}
+                  {isVideoWatched(video.videoId) && (
+                    <Text color="cyan">● </Text>
+                  )}
+                  <Text color="gray">
+                    {isVideoWatched(video.videoId) ? "Watched" : "Watch Later"}
+                  </Text>
+                </Text>
+              </Box>
+            )}
+
             {/* Stats */}
-            <Box flexDirection="row" marginTop={1}>
-              {video.viewCount && (
-                <Box marginRight={2}>
-                  <Text color="green">👁 {formatNumber(video.viewCount)}</Text>
-                </Box>
-              )}
-              {video.likeCount && (
-                <Box>
-                  <Text color="red">❤️ {formatNumber(video.likeCount)}</Text>
-                </Box>
-              )}
-            </Box>
+            {(video.viewCount != null || video.likeCount != null) && (
+              <Box marginTop={1} width="100%" overflow="hidden">
+                <Text color="gray">
+                  {video.viewCount != null &&
+                    `👀 ${formatNumber(video.viewCount)}`}
+                  {video.viewCount != null && video.likeCount != null && " | "}
+                  {video.likeCount != null &&
+                    `❤️ ${formatNumber(video.likeCount)}`}
+                </Text>
+              </Box>
+            )}
 
             {/* Description */}
             {video.description && (
@@ -264,19 +282,35 @@ export function ThumbnailPreview({
               </Text>
             </Box>
 
+            {/* Status indicators for fallback view */}
+            {video && (isVideoWatched(video.videoId) || isVideoInWatchLater(video.videoId)) && (
+              <Box marginTop={1} width="100%" overflow="hidden" alignItems="center">
+                <Text>
+                  {isVideoInWatchLater(video.videoId) && (
+                    <Text color="yellow">★ </Text>
+                  )}
+                  {isVideoWatched(video.videoId) && (
+                    <Text color="cyan">● </Text>
+                  )}
+                  <Text color="gray">
+                    {isVideoWatched(video.videoId) ? "Watched" : "Watch Later"}
+                  </Text>
+                </Text>
+              </Box>
+            )}
+
             {/* Stats for fallback view */}
-            <Box flexDirection="row" marginTop={1}>
-              {video.viewCount && (
-                <Box marginRight={2}>
-                  <Text color="green">👁 {formatNumber(video.viewCount)}</Text>
-                </Box>
-              )}
-              {video.likeCount && (
-                <Box>
-                  <Text color="red">❤️ {formatNumber(video.likeCount)}</Text>
-                </Box>
-              )}
-            </Box>
+            {(video.viewCount != null || video.likeCount != null) && (
+              <Box marginTop={1} width="100%" overflow="hidden">
+                <Text color="gray">
+                  {video.viewCount != null &&
+                    `👀 ${formatNumber(video.viewCount)}`}
+                  {video.viewCount != null && video.likeCount != null && " | "}
+                  {video.likeCount != null &&
+                    `❤️ ${formatNumber(video.likeCount)}`}
+                </Text>
+              </Box>
+            )}
           </Box>
         )}
         {!video.thumbnailUrl && !loading && (
