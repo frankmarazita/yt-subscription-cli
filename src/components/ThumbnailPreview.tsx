@@ -228,21 +228,25 @@ export function ThumbnailPreview({
             </Box>
 
             {/* Status indicators */}
-            {video && (isVideoWatched(video.videoId) || isVideoInWatchLater(video.videoId)) && (
-              <Box marginTop={1} width="100%" overflow="hidden">
-                <Text>
-                  {isVideoInWatchLater(video.videoId) && (
-                    <Text color="yellow">★ </Text>
-                  )}
-                  {isVideoWatched(video.videoId) && (
-                    <Text color="cyan">● </Text>
-                  )}
-                  <Text color="gray">
-                    {isVideoWatched(video.videoId) ? "Watched" : "Watch Later"}
+            {video &&
+              (isVideoWatched(video.videoId) ||
+                isVideoInWatchLater(video.videoId)) && (
+                <Box marginTop={1} width="100%" overflow="hidden">
+                  <Text>
+                    {isVideoInWatchLater(video.videoId) && (
+                      <Text color="yellow">★ </Text>
+                    )}
+                    {isVideoWatched(video.videoId) && (
+                      <Text color="cyan">● </Text>
+                    )}
+                    <Text color="gray">
+                      {isVideoWatched(video.videoId)
+                        ? "Watched"
+                        : "Watch Later"}
+                    </Text>
                   </Text>
-                </Text>
-              </Box>
-            )}
+                </Box>
+              )}
 
             {/* Stats */}
             {(video.viewCount != null || video.likeCount != null) && (
@@ -283,21 +287,30 @@ export function ThumbnailPreview({
             </Box>
 
             {/* Status indicators for fallback view */}
-            {video && (isVideoWatched(video.videoId) || isVideoInWatchLater(video.videoId)) && (
-              <Box marginTop={1} width="100%" overflow="hidden" alignItems="center">
-                <Text>
-                  {isVideoInWatchLater(video.videoId) && (
-                    <Text color="yellow">★ </Text>
-                  )}
-                  {isVideoWatched(video.videoId) && (
-                    <Text color="cyan">● </Text>
-                  )}
-                  <Text color="gray">
-                    {isVideoWatched(video.videoId) ? "Watched" : "Watch Later"}
+            {video &&
+              (isVideoWatched(video.videoId) ||
+                isVideoInWatchLater(video.videoId)) && (
+                <Box
+                  marginTop={1}
+                  width="100%"
+                  overflow="hidden"
+                  alignItems="center"
+                >
+                  <Text>
+                    {isVideoInWatchLater(video.videoId) && (
+                      <Text color="yellow">★ </Text>
+                    )}
+                    {isVideoWatched(video.videoId) && (
+                      <Text color="cyan">● </Text>
+                    )}
+                    <Text color="gray">
+                      {isVideoWatched(video.videoId)
+                        ? "Watched"
+                        : "Watch Later"}
+                    </Text>
                   </Text>
-                </Text>
-              </Box>
-            )}
+                </Box>
+              )}
 
             {/* Stats for fallback view */}
             {(video.viewCount != null || video.likeCount != null) && (

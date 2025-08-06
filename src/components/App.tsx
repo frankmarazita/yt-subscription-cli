@@ -3,6 +3,7 @@ import { exec } from "child_process";
 import { VideoList } from "./VideoList";
 import { LoadingScreen } from "./LoadingScreen";
 import { useAppStore } from "../store/appStore";
+import { useConfigStore } from "../store/configStore";
 import type { VideoItem } from "../types";
 import { useEffect, useState } from "react";
 
@@ -44,7 +45,33 @@ export function App() {
     refreshStatus,
   } = store;
 
+  const configStore = useConfigStore();
+  const { config } = configStore;
+
   const autoRefreshInterval = 5 * 60 * 1000; // 5 minutes
+
+  // Initialize app and config
+  useEffect(() => {
+    store.initializeApp();
+  }, []);
+
+  // Listen for config changes and sync with app store
+  useEffect(() => {
+    const unsubscribe = useConfigStore.subscribe((state) => {
+      // Update app store when config changes from external sources
+      const currentAppState = useAppStore.getState();
+      if (
+        currentAppState.showPreview !==
+        state.config.userPreferences.thumbnailPreview
+      ) {
+        useAppStore.setState({
+          showPreview: state.config.userPreferences.thumbnailPreview,
+        });
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   // Initial load
   useEffect(() => {
@@ -53,7 +80,12 @@ export function App() {
 
   // Auto-refresh setup
   useEffect(() => {
-    if (!store.lastUpdated || store.loading) return;
+    if (
+      !store.lastUpdated ||
+      store.loading ||
+      !config.userPreferences.autoRefresh
+    )
+      return;
 
     const interval = setInterval(() => {
       if (!store.loading && !store.refreshing) {
@@ -62,7 +94,13 @@ export function App() {
     }, autoRefreshInterval);
 
     return () => clearInterval(interval);
-  }, [store.lastUpdated, store.loading, store.refresh, autoRefreshInterval]);
+  }, [
+    store.lastUpdated,
+    store.loading,
+    store.refresh,
+    autoRefreshInterval,
+    config.userPreferences.autoRefresh,
+  ]);
 
   const openVideoInBrowser = (url: string) => {
     const command =
@@ -79,6 +117,8 @@ export function App() {
   };
 
   const handleExit = () => {
+    // Cleanup config watcher
+    configStore.stopWatching();
     exit();
   };
 

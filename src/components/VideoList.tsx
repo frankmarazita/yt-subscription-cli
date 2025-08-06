@@ -142,7 +142,9 @@ export function VideoList({
     (state) => state.toggleVideoWatchLater
   );
   const markVideoAsWatched = useAppStore((state) => state.markVideoAsWatched);
-  const toggleVideoWatchedStatus = useAppStore((state) => state.toggleVideoWatchedStatus);
+  const toggleVideoWatchedStatus = useAppStore(
+    (state) => state.toggleVideoWatchedStatus
+  );
   const isVideoInWatchLater = useAppStore((state) => state.isVideoInWatchLater);
   const isVideoWatched = useAppStore((state) => state.isVideoWatched);
 
@@ -403,8 +405,8 @@ export function VideoList({
         )}
       </Box>
 
-      <AppFooter 
-        selectedVideo={selectedVideo} 
+      <AppFooter
+        selectedVideo={selectedVideo}
         listWidth={terminalWidth}
         showWatchLaterOnly={showWatchLaterOnly}
         watchLaterCount={filteredVideos.length}

@@ -1,6 +1,12 @@
 import { create } from "zustand";
-import { fetchVideos, toggleWatchLater, markVideoAsWatched, toggleWatchedStatus } from "../services/video-service";
+import {
+  fetchVideos,
+  toggleWatchLater,
+  markVideoAsWatched,
+  toggleWatchedStatus,
+} from "../services/video-service";
 import type { VideoItem, Subscription } from "../types";
+import { useConfigStore } from "./configStore";
 
 interface AppState {
   // Video data
@@ -30,6 +36,7 @@ interface AppState {
   thumbnailCache: Map<string, string>;
 
   // Actions
+  initializeApp: () => void;
   loadVideos: (forceRefresh?: boolean) => Promise<void>;
   refresh: () => Promise<void>;
   togglePreview: () => void;
@@ -44,8 +51,18 @@ interface AppState {
   isVideoWatched: (videoId: string) => boolean;
 }
 
+// Load config immediately when store is created
+let initialShowPreview = true; // fallback
+try {
+  const { loadConfig } = require("../utils/config");
+  const config = loadConfig();
+  initialShowPreview = config.userPreferences.thumbnailPreview;
+} catch (err) {
+  // Keep default fallback
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
-  // Initial state
+  // Initial state - uses actual config value
   videos: [],
   subscriptions: [],
   watchLaterIds: new Set(),
@@ -57,11 +74,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   refreshStatus: "",
   lastUpdated: null,
   cacheAge: 0,
-  showPreview: true,
+  showPreview: initialShowPreview, // Uses real config value from file
   showWatchLaterOnly: false,
   thumbnailCache: new Map(),
 
   // Actions
+  initializeApp: () => {
+    // Start config store watching for future changes
+    const configStore = useConfigStore.getState();
+    configStore.loadConfig();
+    configStore.startWatching();
+  },
+
   loadVideos: async (forceRefresh = false) => {
     const state = get();
 
@@ -112,7 +136,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   togglePreview: () => {
-    set((state) => ({ showPreview: !state.showPreview }));
+    set((state) => {
+      const newShowPreview = !state.showPreview;
+
+      // Update config store
+      const configStore = useConfigStore.getState();
+      configStore.updateUserPreferences({ thumbnailPreview: newShowPreview });
+
+      return { showPreview: newShowPreview };
+    });
   },
 
   toggleWatchLaterOnly: () => {
@@ -167,7 +199,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (err) {
       set({
         error:
-          err instanceof Error ? err.message : "Failed to mark video as watched",
+          err instanceof Error
+            ? err.message
+            : "Failed to mark video as watched",
       });
     }
   },
@@ -188,7 +222,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (err) {
       set({
         error:
-          err instanceof Error ? err.message : "Failed to toggle watched status",
+          err instanceof Error
+            ? err.message
+            : "Failed to toggle watched status",
       });
     }
   },

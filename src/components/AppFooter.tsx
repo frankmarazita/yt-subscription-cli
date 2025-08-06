@@ -10,12 +10,12 @@ interface AppFooterProps {
   totalVideoCount?: number;
 }
 
-function AppFooterComponent({ 
-  selectedVideo, 
-  listWidth, 
+function AppFooterComponent({
+  selectedVideo,
+  listWidth,
   showWatchLaterOnly = false,
   watchLaterCount = 0,
-  totalVideoCount = 0 
+  totalVideoCount = 0,
 }: AppFooterProps) {
   const truncateText = (text: string, maxLength: number) => {
     return text.length > maxLength
@@ -40,13 +40,20 @@ function AppFooterComponent({
                 {selectedVideo.channel || "N/A"} | Date:{" "}
                 {selectedVideo.publishedDateTime || "N/A"}
                 {showWatchLaterOnly && (
-                  <Text color="yellow"> | Watch Later Filter: ON ({watchLaterCount}/{totalVideoCount})</Text>
+                  <Text color="yellow">
+                    {" "}
+                    | Watch Later Filter: ON ({watchLaterCount}/
+                    {totalVideoCount})
+                  </Text>
                 )}
               </Text>
             </>
           ) : (
             showWatchLaterOnly && (
-              <Text color="yellow">Watch Later Filter: ON ({watchLaterCount}/{totalVideoCount} videos)</Text>
+              <Text color="yellow">
+                Watch Later Filter: ON ({watchLaterCount}/{totalVideoCount}{" "}
+                videos)
+              </Text>
             )
           )}
         </Box>
@@ -54,8 +61,9 @@ function AppFooterComponent({
 
       <Box justifyContent="center">
         <Text color="gray">
-          ↑↓/jk: Navigate | PgUp/PgDn: Jump | Enter/o: Open | w: Watch Later | m: Toggle Watched | l: Filter Watch Later |
-          s: QR Code | r: Refresh | p: Preview | q/Esc: Quit
+          ↑↓/jk: Navigate | PgUp/PgDn: Jump | Enter/o: Open | w: Watch Later |
+          m: Toggle Watched | l: Filter Watch Later | s: QR Code | r: Refresh |
+          p: Preview | q/Esc: Quit
         </Text>
       </Box>
     </>

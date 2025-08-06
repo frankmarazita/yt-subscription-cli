@@ -13,15 +13,10 @@ function generateFallbackThumbnailUrl(videoLink: string): string | undefined {
 
 async function initDatabase() {
   const { Database } = await import("bun:sqlite");
-  const path = await import("path");
-  const { fileURLToPath } = await import("url");
-  
-  // Get the directory of the current module
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  
-  // Create database path relative to the source file's location
-  const dbPath = path.resolve(__dirname, "../../app.db");
+  const { getDatabasePath } = await import("../utils/config");
+
+  // Use config directory for database
+  const dbPath = getDatabasePath();
   const db = new Database(dbPath);
 
   db.exec(`
@@ -219,6 +214,7 @@ export interface VideoServiceResult {
   videos: VideoItem[];
   subscriptions: Subscription[];
   watchLaterIds: Set<string>;
+  watchedIds: Set<string>;
 }
 
 export async function fetchVideos(
@@ -303,14 +299,14 @@ export async function fetchVideos(
 
 export async function markVideoAsWatched(videoId: string): Promise<void> {
   const db = await initDatabase();
-  
+
   try {
     // Insert or replace the watch history record
     const stmt = db.prepare(`
       INSERT OR REPLACE INTO watch_history (video_id, watched_at) 
       VALUES (?, ?)
     `);
-    
+
     stmt.run(videoId, Date.now());
   } finally {
     db.close();
@@ -319,13 +315,13 @@ export async function markVideoAsWatched(videoId: string): Promise<void> {
 
 export async function markVideoAsUnwatched(videoId: string): Promise<void> {
   const db = await initDatabase();
-  
+
   try {
     // Remove the video from watch history
     const stmt = db.prepare(`
       DELETE FROM watch_history WHERE video_id = ?
     `);
-    
+
     stmt.run(videoId);
   } finally {
     db.close();
@@ -334,15 +330,15 @@ export async function markVideoAsUnwatched(videoId: string): Promise<void> {
 
 export async function toggleWatchedStatus(videoId: string): Promise<boolean> {
   const db = await initDatabase();
-  
+
   try {
     // Check if video is currently watched
     const checkStmt = db.prepare(`
       SELECT video_id FROM watch_history WHERE video_id = ?
     `);
-    
+
     const existing = checkStmt.get(videoId);
-    
+
     if (existing) {
       // Video is watched, mark as unwatched
       const deleteStmt = db.prepare(`
