@@ -46,20 +46,11 @@ export function QRCodeModal({ video, isVisible, onClose }: QRCodeModalProps) {
       width="100%"
       height="100%"
     >
-      <Box
-        paddingX={5}
-        paddingY={3}
-        borderStyle="round"
-        borderColor="white"
-        flexDirection="column"
-        alignItems="center"
-      >
-        {qrCodeData ? (
-          <Text>{qrCodeData}</Text>
-        ) : (
-          <Text color="yellow">Generating QR code...</Text>
-        )}
-      </Box>
+      {qrCodeData ? (
+        <Text>{qrCodeData}</Text>
+      ) : (
+        <Text color="yellow">Generating QR code...</Text>
+      )}
     </Box>
   );
 }
