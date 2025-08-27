@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect, useRef, useState } from "react";
 import { Box, Text, useInput } from "ink";
+import { ScrollBar } from "./ScrollBar";
 import { formatTimeAgo, getChannelColor } from "../utils/dateUtils";
 import { ThumbnailPreview } from "./ThumbnailPreview";
 import { AppHeader } from "./AppHeader";
@@ -41,8 +42,6 @@ function VideoRow({
   isInWatchLater,
   isWatched,
 }: VideoRowProps) {
-  const textColor = isSelected ? "yellow" : "white";
-
   const truncate = (text: string, max: number) => {
     if (!text) return "";
     if (text.length <= max) return text;
@@ -224,6 +223,15 @@ export function VideoList({
     }
   }, [filteredVideos]);
 
+  // Update scroll offset based on selection
+  useEffect(() => {
+    if (currentSelection < scrollOffset) {
+      setScrollOffset(currentSelection);
+    } else if (currentSelection >= scrollOffset + listHeight) {
+      setScrollOffset(currentSelection - listHeight + 1);
+    }
+  }, [currentSelection, listHeight, scrollOffset]);
+
   // Get currently selected video (simplified)
   const selectedVideo = useMemo(() => {
     return filteredVideos[currentSelection] || null;
@@ -263,15 +271,6 @@ export function VideoList({
     );
     setCurrentSelection(newIndex);
   };
-
-  // Update scroll offset based on selection (simplified)
-  useEffect(() => {
-    if (currentSelection < scrollOffset) {
-      setScrollOffset(currentSelection);
-    } else if (currentSelection >= scrollOffset + listHeight) {
-      setScrollOffset(currentSelection - listHeight + 1);
-    }
-  }, [currentSelection, listHeight, scrollOffset]);
 
   // Keyboard input handling
   useInput((input, key) => {
@@ -383,8 +382,16 @@ export function VideoList({
             </Box>
           </Box>
 
-          <Box flexDirection="column" height={listHeight} marginBottom={2}>
-            {renderVisibleItems()}
+          <Box flexDirection="row" height={listHeight} marginBottom={2}>
+            <Box flexDirection="column" flexGrow={1}>
+              {renderVisibleItems()}
+            </Box>
+            <ScrollBar
+              totalItems={filteredVideos.length}
+              visibleItems={listHeight}
+              scrollOffset={scrollOffset}
+              height={listHeight}
+            />
           </Box>
         </Box>
 
