@@ -19,13 +19,18 @@ const calculateTargetWidth = (availableWidth: number): number => {
 };
 
 // Status indicators component
-function VideoStatusIndicators({ video, isVideoWatched, isVideoInWatchLater }: {
+function VideoStatusIndicators({
+  video,
+  isVideoWatched,
+  isVideoInWatchLater,
+}: {
   video: VideoItem;
   isVideoWatched: (id: string) => boolean;
   isVideoInWatchLater: (id: string) => boolean;
 }) {
-  const hasStatus = isVideoWatched(video.videoId) || isVideoInWatchLater(video.videoId);
-  
+  const hasStatus =
+    isVideoWatched(video.videoId) || isVideoInWatchLater(video.videoId);
+
   if (!hasStatus) return null;
 
   return (
@@ -57,12 +62,17 @@ function VideoStats({ video, width }: { video: VideoItem; width: number }) {
 }
 
 // Custom hook for thumbnail loading
-function useThumbnailLoader(video: VideoItem | null, stableDimensions: { width: number; height: number }) {
+function useThumbnailLoader(
+  video: VideoItem | null,
+  stableDimensions: { width: number; height: number }
+) {
   const [imageData, setImageData] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
 
-  const getThumbnailFromCache = useAppStore((state) => state.getThumbnailFromCache);
+  const getThumbnailFromCache = useAppStore(
+    (state) => state.getThumbnailFromCache
+  );
   const setThumbnailCache = useAppStore((state) => state.setThumbnailCache);
 
   useEffect(() => {
@@ -78,7 +88,7 @@ function useThumbnailLoader(video: VideoItem | null, stableDimensions: { width: 
 
       const cacheKey = `${video.videoId}-${stableDimensions.width}x${stableDimensions.height}`;
       const cachedImage = getThumbnailFromCache(cacheKey);
-      
+
       if (cachedImage) {
         setImageData(cachedImage);
         setLoading(false);
@@ -88,6 +98,13 @@ function useThumbnailLoader(video: VideoItem | null, stableDimensions: { width: 
       try {
         const availableWidth = stableDimensions.width - 2;
         const targetWidth = calculateTargetWidth(availableWidth);
+
+        if (!video.thumbnailUrl) {
+          setError("No thumbnail URL available");
+          setImageData("");
+          setLoading(false);
+          return;
+        }
 
         const response = await fetch(video.thumbnailUrl);
         if (!response.ok) {
@@ -133,7 +150,12 @@ function useThumbnailLoader(video: VideoItem | null, stableDimensions: { width: 
 }
 
 // Video info component (shared between image and fallback views)
-function VideoInfo({ video, width, isVideoWatched, isVideoInWatchLater }: {
+function VideoInfo({
+  video,
+  width,
+  isVideoWatched,
+  isVideoInWatchLater,
+}: {
   video: VideoItem;
   width: number;
   isVideoWatched: (id: string) => boolean;
@@ -149,10 +171,10 @@ function VideoInfo({ video, width, isVideoWatched, isVideoInWatchLater }: {
       <Box width="100%" overflow="hidden">
         <Text color="gray">{truncateText(video.channel, width - 4)}</Text>
       </Box>
-      <VideoStatusIndicators 
-        video={video} 
-        isVideoWatched={isVideoWatched} 
-        isVideoInWatchLater={isVideoInWatchLater} 
+      <VideoStatusIndicators
+        video={video}
+        isVideoWatched={isVideoWatched}
+        isVideoInWatchLater={isVideoInWatchLater}
       />
       <VideoStats video={video} width={width} />
       {video.description && (
@@ -180,7 +202,9 @@ export function ThumbnailPreview({
   preloadVideo,
 }: ThumbnailPreviewProps) {
   // Use store for preloading and video status
-  const getThumbnailFromCache = useAppStore((state) => state.getThumbnailFromCache);
+  const getThumbnailFromCache = useAppStore(
+    (state) => state.getThumbnailFromCache
+  );
   const setThumbnailCache = useAppStore((state) => state.setThumbnailCache);
   const isVideoInWatchLater = useAppStore((state) => state.isVideoInWatchLater);
   const isVideoWatched = useAppStore((state) => state.isVideoWatched);
@@ -194,8 +218,10 @@ export function ThumbnailPreview({
     ]
   );
 
-  const { imageData, loading, error } = useThumbnailLoader(video, stableDimensions);
-
+  const { imageData, loading, error } = useThumbnailLoader(
+    video,
+    stableDimensions
+  );
 
   // Preload next video thumbnail
   useEffect(() => {
@@ -263,38 +289,38 @@ export function ThumbnailPreview({
     if (loading) {
       return <Text color="yellow">Loading thumbnail...</Text>;
     }
-    
+
     if (error) {
       return <Text color="red">Failed to load image</Text>;
     }
-    
+
     if (!video.thumbnailUrl) {
       return <Text color="gray">No thumbnail available</Text>;
     }
-    
+
     if (imageData) {
       return (
         <Box flexDirection="column" alignItems="flex-start" width="100%">
           <Text>{imageData}</Text>
-          <VideoInfo 
-            video={video} 
-            width={width} 
-            isVideoWatched={isVideoWatched} 
-            isVideoInWatchLater={isVideoInWatchLater} 
+          <VideoInfo
+            video={video}
+            width={width}
+            isVideoWatched={isVideoWatched}
+            isVideoInWatchLater={isVideoInWatchLater}
           />
         </Box>
       );
     }
-    
+
     // Fallback view without image
     return (
       <Box flexDirection="column" alignItems="center" width="100%">
         <Text color="gray">📺</Text>
-        <VideoInfo 
-          video={video} 
-          width={width} 
-          isVideoWatched={isVideoWatched} 
-          isVideoInWatchLater={isVideoInWatchLater} 
+        <VideoInfo
+          video={video}
+          width={width}
+          isVideoWatched={isVideoWatched}
+          isVideoInWatchLater={isVideoInWatchLater}
         />
       </Box>
     );

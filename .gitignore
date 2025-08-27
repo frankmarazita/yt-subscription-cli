@@ -5,6 +5,7 @@ node_modules
 out
 dist
 *.tgz
+yt-subscription-cli
 
 # code coverage
 coverage

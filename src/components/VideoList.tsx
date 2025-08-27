@@ -81,12 +81,8 @@ function VideoRow({
     >
       <Box flexDirection="row" width="100%">
         <Box width={3} marginRight={1} flexShrink={0}>
-          <Text color="yellow">
-            {isInWatchLater ? "★ " : "  "}
-          </Text>
-          <Text color="cyan">
-            {isWatched ? "●" : "○"}
-          </Text>
+          <Text color="yellow">{isInWatchLater ? "★ " : "  "}</Text>
+          <Text color="cyan">{isWatched ? "●" : "○"}</Text>
         </Box>
         <Box
           width={channelWidth - 4}
@@ -102,7 +98,9 @@ function VideoRow({
           flexShrink={0}
           overflow="hidden"
         >
-          <Text color={titleColor} underline={isSelected}>{displayTitle}</Text>
+          <Text color={titleColor} underline={isSelected}>
+            {displayTitle}
+          </Text>
         </Box>
         <Box width={dateWidth} flexShrink={0} overflow="hidden">
           <Text color={dateColor}>{displayTime}</Text>

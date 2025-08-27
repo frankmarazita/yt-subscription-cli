@@ -17,6 +17,7 @@ A terminal-based YouTube subscription manager built with React Ink. Browse your 
 - **QR code modal** for easy mobile access to videos
 - **Enhanced metadata** with view counts, like counts, and descriptions
 - **Responsive terminal UI** that adapts to window resizing
+- **Add subscriptions** from any YouTube channel URL format via command line
 
 ## Installation
 
@@ -32,6 +33,24 @@ bun install
 bun start
 ```
 
+### Add a Subscription
+
+Add any YouTube channel to your subscriptions using any URL format:
+
+```bash
+# Add from @username handle
+bun src/cli.tsx add "https://www.youtube.com/@channelname"
+
+# Add from /c/ format
+bun src/cli.tsx add "https://www.youtube.com/c/channelname"
+
+# Add from channel ID format
+bun src/cli.tsx add "https://www.youtube.com/channel/UC..."
+
+# Show help
+bun src/cli.tsx add --help
+```
+
 ### Development
 
 ```bash
@@ -42,16 +61,18 @@ bun run dev  # Run with file watching and hot reload
 
 - **↑/↓** or **j/k**: Navigate through videos
 - **Page Up/Page Down**: Jump through list faster
-- **Enter** or **o**: Open selected video in browser
+- **Enter** or **o**: Open selected video in browser and mark as watched
 - **w**: Toggle Watch Later status for current video
 - **m**: Toggle watched status for current video (mark as watched/unwatched)
 - **l**: Toggle Watch Later filter (show only starred videos)
-- **c**: Show QR code modal for current video
+- **s**: Show QR code modal for current video
 - **r**: Refresh data from YouTube RSS feeds
 - **p**: Toggle thumbnail preview on/off
 - **q** or **Esc**: Quit application
 
 ## Setup
+
+### Method 1: Google Takeout (Recommended)
 
 1. Export your YouTube subscriptions:
    - Go to [Google Takeout](https://takeout.google.com)
@@ -59,7 +80,36 @@ bun run dev  # Run with file watching and hot reload
    - Download and extract the data
    - Copy `subscriptions.csv` to the project root
 
-2. The app will automatically create a cache database (`cache.db`) on first run
+### Method 2: Manual Addition
+
+1. Create an empty `subscriptions.csv` or use the existing one
+2. Add channels using the command line:
+   ```bash
+   bun src/cli.tsx add "https://www.youtube.com/@your-favorite-channel"
+   ```
+
+## Database
+
+The app automatically creates a SQLite database at `~/.config/yt-subscription-cli/app.db` for:
+
+- Video caching (faster loading, offline access)
+- Watch Later playlist
+- Watch history tracking
+
+## Supported YouTube URL Formats
+
+The `add` command supports all common YouTube channel URL formats:
+
+- `https://www.youtube.com/@username` (handle format)
+- `https://www.youtube.com/c/channelname` (custom URL format)
+- `https://www.youtube.com/channel/UC...` (channel ID format)
+
+The tool automatically:
+
+- Extracts the channel ID from any format
+- Fetches the channel title from YouTube
+- Prevents duplicate subscriptions
+- Creates the CSV file if it doesn't exist
 
 ## Thumbnail Support
 
@@ -81,6 +131,21 @@ In unsupported terminals, thumbnails appear as colored ASCII blocks.
 - **XML Parsing**: xml2js
 - **Language**: TypeScript
 
+## File Structure
+
+- `subscriptions.csv` - Your YouTube channel subscriptions (CSV format from Google Takeout)
+- `~/.config/yt-subscription-cli/app.db` - SQLite database for caching and playlists
+- `~/.config/yt-subscription-cli/config.json` - User preferences and settings
+
+## CSV Format
+
+The `subscriptions.csv` file uses the Google Takeout format:
+
+```csv
+Channel ID,Channel URL,Channel title
+UC...,https://www.youtube.com/channel/UC...,Channel Name
+```
+
 ## Architecture
 
 The app uses a modular React component architecture:
@@ -89,3 +154,4 @@ The app uses a modular React component architecture:
 - **Background thumbnail caching** with LRU eviction
 - **Prefetching system** for smooth navigation
 - **SQLite persistence** for offline access and performance
+- **Command line interface** with yargs for subscription management

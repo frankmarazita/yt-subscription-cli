@@ -2,8 +2,8 @@
 import { render } from "ink";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { App } from "./components/App.js";
-import { addSubscriptionToCSV } from "./utils/subscriptionUtils.js";
+import { App } from "./components/App";
+import { addSubscriptionToCSV } from "./utils/subscriptionUtils";
 
 const argv = await yargs(hideBin(process.argv))
   .command(

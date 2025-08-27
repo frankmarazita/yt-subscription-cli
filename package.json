@@ -6,6 +6,7 @@
   "scripts": {
     "start": "bun src/cli.tsx",
     "dev": "bun --watch src/cli.tsx",
+    "build": "bun build --compile --outfile=yt-subscription-cli src/cli.tsx",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
