@@ -4,6 +4,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { App } from "./components/App";
 import { addSubscriptionToCSV } from "./utils/subscriptionUtils";
+import { resolve } from "path";
 
 const argv = await yargs(hideBin(process.argv))
   .command(
@@ -25,6 +26,41 @@ const argv = await yargs(hideBin(process.argv))
         console.error("❌", (error as Error).message);
         process.exit(1);
       }
+    }
+  )
+  .command(
+    "viewer",
+    "Start web server for watching videos",
+    (yargs) => {
+      return yargs.option("port", {
+        alias: "p",
+        describe: "Port to run the server on",
+        type: "number",
+        default: 4000,
+      });
+    },
+    async (argv) => {
+      const watchHtmlPath = resolve(import.meta.dir, "../watch.html");
+
+      Bun.serve({
+        port: argv.port,
+        async fetch(req) {
+          const url = new URL(req.url);
+
+          if (url.pathname === "/") {
+            const file = Bun.file(watchHtmlPath);
+            return new Response(file, {
+              headers: {
+                "Content-Type": "text/html",
+              },
+            });
+          }
+
+          return new Response("Not Found", { status: 404 });
+        },
+      });
+
+      console.log(`🎬 Viewer server running at http://localhost:${argv.port}`);
     }
   )
   .help()

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watch</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #000;
+        overflow: hidden;
+      }
+      iframe {
+        width: 100vw;
+        height: 100vh;
+        border: none;
+      }
+      .error {
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin-top: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="content">
+      <div class="error">Loading video...</div>
+    </div>
+
+    <script>
+      // Get video URL from URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const videoUrl = urlParams.get("url");
+
+      if (videoUrl) {
+        // Convert YouTube watch URL to embed URL if needed
+        let embedUrl = videoUrl;
+        if (videoUrl.includes("youtube.com/watch?v=")) {
+          const videoId = videoUrl.split("v=")[1].split("&")[0];
+          embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        } else if (videoUrl.includes("youtu.be/")) {
+          const videoId = videoUrl.split("youtu.be/")[1].split("?")[0];
+          embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        }
+
+        // Create and insert iframe
+        document.getElementById("content").innerHTML =
+          `<iframe src="${embedUrl}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+      } else {
+        document.getElementById("content").innerHTML =
+          '<div class="error">No video URL provided. Please add ?url=VIDEO_URL to the address bar.</div>';
+      }
+    </script>
+  </body>
+</html>

@@ -12,6 +12,7 @@ import type { VideoItem } from "../types";
 interface VideoListProps {
   videos: VideoItem[];
   onSelect: (video: VideoItem) => void;
+  onSelectInViewer?: (video: VideoItem) => void;
   onExit: () => void;
   onRefresh?: () => void;
   refreshing?: boolean;
@@ -112,6 +113,7 @@ function VideoRow({
 export function VideoList({
   videos,
   onSelect,
+  onSelectInViewer,
   onExit,
   onRefresh,
   refreshing = false,
@@ -289,6 +291,7 @@ export function VideoList({
       if (selectedVideo) {
         // Mark video as watched before opening
         markVideoAsWatched(selectedVideo.videoId);
+        // Regular Enter opens directly in browser
         onSelect(selectedVideo);
       }
     } else if (input === "q" || key.escape) {
@@ -310,6 +313,12 @@ export function VideoList({
     } else if (input === "s") {
       if (selectedVideo) {
         setShowQRModal(true);
+      }
+    } else if (input === "v") {
+      if (selectedVideo && onSelectInViewer) {
+        // 'v' opens in HTML viewer
+        markVideoAsWatched(selectedVideo.videoId);
+        onSelectInViewer(selectedVideo);
       }
     }
   });

@@ -102,7 +102,7 @@ export function App() {
     config.userPreferences.autoRefresh,
   ]);
 
-  const openVideoInBrowser = (url: string) => {
+  const openVideoDirectly = (url: string) => {
     const command =
       process.platform === "darwin"
         ? "open"
@@ -112,13 +112,31 @@ export function App() {
     exec(`${command} "${url}"`);
   };
 
+  const openVideoInHtmlViewer = (url: string) => {
+    const command =
+      process.platform === "darwin"
+        ? "open"
+        : process.platform === "win32"
+          ? "start"
+          : "xdg-open";
+
+    // TODO: Use correct configs for local viewer
+    const urlWithParam = `http://localhost:4000?url=${encodeURIComponent(url)}`;
+    exec(`${command} "${urlWithParam}"`);
+  };
+
   const handleVideoSelect = (video: VideoItem) => {
-    openVideoInBrowser(video.link);
+    openVideoDirectly(video.link);
+  };
+
+  const handleVideoSelectInViewer = (video: VideoItem) => {
+    openVideoInHtmlViewer(video.link);
   };
 
   const handleExit = () => {
-    // Cleanup config watcher
+    // Cleanup watchers
     configStore.stopWatching();
+    store.stopDownloadsWatcher();
     exit();
   };
 
@@ -154,6 +172,7 @@ export function App() {
       <VideoList
         videos={displayVideos}
         onSelect={handleVideoSelect}
+        onSelectInViewer={handleVideoSelectInViewer}
         onExit={handleExit}
         onRefresh={handleRefresh}
         refreshing={refreshing}
