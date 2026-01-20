@@ -1,0 +1,61 @@
+#!/usr/bin/env bun
+
+/**
+ * Test script to check if YouTube is rate limiting RSS feed requests
+ */
+
+const TEST_CHANNEL_ID = "UCXuqSBlHAE6Xw-yeJA0Tunw"; // Linus Tech Tips
+const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${TEST_CHANNEL_ID}`;
+
+console.log("🔍 Testing YouTube RSS feed access...\n");
+console.log(`Channel ID: ${TEST_CHANNEL_ID}`);
+console.log(`URL: ${RSS_URL}\n`);
+
+try {
+  const response = await fetch(RSS_URL);
+  const text = await response.text();
+
+  console.log(`Status Code: ${response.status}`);
+  console.log(`Content-Type: ${response.headers.get("content-type")}\n`);
+
+  // Check if response is valid XML or an error page
+  if (text.includes("<?xml")) {
+    console.log("✅ SUCCESS: RSS feed is accessible!");
+    console.log("   You are NOT rate limited.\n");
+
+    // Parse and show a sample video
+    const titleMatch = text.match(/<title>([^<]+)<\/title>/g);
+    if (titleMatch && titleMatch.length > 1) {
+      console.log("📺 Sample videos found:");
+      titleMatch.slice(1, 4).forEach((match) => {
+        const title = match.replace(/<\/?title>/g, "");
+        console.log(`   - ${title}`);
+      });
+    }
+  } else if (
+    text.includes("Sorry...") ||
+    text.includes("automated queries") ||
+    text.includes("We're sorry")
+  ) {
+    console.log("❌ RATE LIMITED: YouTube is blocking your requests!");
+    console.log("   Error message detected in response.\n");
+    console.log("💡 What to do:");
+    console.log("   1. Wait 15-30 minutes before trying again");
+    console.log("   2. Use cached videos (already configured)");
+    console.log("   3. Consider using a VPN if the issue persists");
+    console.log("   4. Reduce refresh frequency in the app\n");
+
+    // Show first part of error response
+    console.log("Response preview:");
+    console.log(text.substring(0, 300) + "...\n");
+  } else {
+    console.log("⚠️  UNKNOWN RESPONSE: Unexpected content received");
+    console.log("   This might indicate a different issue.\n");
+    console.log("Response preview:");
+    console.log(text.substring(0, 500) + "...\n");
+  }
+} catch (error) {
+  console.log("❌ ERROR: Failed to fetch RSS feed");
+  console.log(`   ${error instanceof Error ? error.message : String(error)}\n`);
+  console.log("💡 This could indicate a network issue or DNS problem.");
+}
