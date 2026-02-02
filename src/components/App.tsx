@@ -112,7 +112,7 @@ export function App() {
     exec(`${command} "${url}"`);
   };
 
-  const openVideoInHtmlViewer = (url: string) => {
+  const openVideoInHtmlViewer = (v: string) => {
     const command =
       process.platform === "darwin"
         ? "open"
@@ -121,7 +121,7 @@ export function App() {
           : "xdg-open";
 
     // TODO: Use correct configs for local viewer
-    const urlWithParam = `http://localhost:4000?url=${encodeURIComponent(url)}`;
+    const urlWithParam = `http://localhost:4000/watch?v=${encodeURIComponent(v)}`;
     exec(`${command} "${urlWithParam}"`);
   };
 
@@ -130,7 +130,8 @@ export function App() {
   };
 
   const handleVideoSelectInViewer = (video: VideoItem) => {
-    openVideoInHtmlViewer(video.link);
+    const v = video.link.split("v=")[1] ?? "";
+    openVideoInHtmlViewer(v);
   };
 
   const handleExit = () => {

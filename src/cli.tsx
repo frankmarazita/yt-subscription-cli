@@ -47,7 +47,7 @@ const argv = await yargs(hideBin(process.argv))
         async fetch(req) {
           const url = new URL(req.url);
 
-          if (url.pathname === "/") {
+          if (url.pathname === "/watch") {
             const file = Bun.file(watchHtmlPath);
             return new Response(file, {
               headers: {
