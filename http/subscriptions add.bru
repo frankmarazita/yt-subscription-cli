@@ -1,0 +1,18 @@
+meta {
+  name: subscriptions add
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{url}}/subscriptions
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+  //   "url": "www.youtube.com/@Fireship"
+    "url": "http://www.youtube.com/channel/UCsBjURrPoezykLs9EqgamOA"
+  }
+}

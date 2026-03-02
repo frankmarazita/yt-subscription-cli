@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Video {
+  id           String  @id
+  title        String
+  channel      String
+  link         String
+  published    BigInt
+  isShort      Boolean @default(false) @map("is_short")
+  thumbnailUrl String? @map("thumbnail_url")
+  viewCount    Int?    @map("view_count")
+  likeCount    Int?    @map("like_count")
+  description  String?
+  cachedAt     BigInt  @map("cached_at")
+
+  playlists    PlaylistVideo[]
+  watchHistory WatchHistory?
+
+  @@index([published])
+  @@index([cachedAt])
+  @@index([isShort])
+  @@map("video")
+}
+
+model Playlist {
+  id        String        @id
+  name      String
+  createdAt BigInt        @map("created_at")
+  updatedAt BigInt        @map("updated_at")
+  videos    PlaylistVideo[]
+
+  @@map("playlist")
+}
+
+model PlaylistVideo {
+  playlistId String   @map("playlist_id")
+  videoId    String   @map("video_id")
+  addedAt    BigInt   @map("added_at")
+  orderIndex Int?     @map("order_index")
+  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  video      Video    @relation(fields: [videoId], references: [id])
+
+  @@id([playlistId, videoId])
+  @@index([playlistId])
+  @@index([videoId])
+  @@map("playlist_video")
+}
+
+model WatchHistory {
+  videoId   String @id  @map("video_id")
+  watchedAt BigInt      @map("watched_at")
+  video     Video  @relation(fields: [videoId], references: [id])
+
+  @@index([watchedAt])
+  @@map("watch_history")
+}
+
+model Subscription {
+  channelId  String  @id @map("channel_id")
+  title      String
+  channelUrl String? @map("channel_url")
+  createdAt  BigInt  @map("created_at")
+
+  @@map("subscription")
+}

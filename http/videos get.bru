@@ -1,0 +1,15 @@
+meta {
+  name: videos get
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{url}}/videos
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~includeShorts: true
+}

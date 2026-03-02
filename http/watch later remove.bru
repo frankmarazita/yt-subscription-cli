@@ -1,0 +1,15 @@
+meta {
+  name: watch later remove
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{url}}/watch-later/:videoId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  videoId: Xg1ro-zG7AM
+}

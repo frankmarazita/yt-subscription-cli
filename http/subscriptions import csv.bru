@@ -1,0 +1,15 @@
+meta {
+  name: subscriptions import csv
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{url}}/subscriptions/import-csv
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  file: @file(../subscriptions.csv.example)
+}
