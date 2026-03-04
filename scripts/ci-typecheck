@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+ROOT=$(git rev-parse --show-toplevel)
+
+cd "$ROOT"
+bun install
+
+cd "$ROOT/packages/api"
+DATABASE_URL="postgresql://localhost/dummy" bunx prisma generate
+
+cd "$ROOT/packages/contracts"
+bun run tsc --noEmit
+
+cd "$ROOT/packages/api"
+bun run tsc --noEmit
