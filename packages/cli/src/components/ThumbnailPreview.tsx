@@ -5,6 +5,23 @@ import type { VideoItem } from "../types";
 import terminalImage from "terminal-image";
 import { formatNumber, truncateText } from "../utils/formatUtils";
 
+// IIP sequences (iTerm2 protocol) don't render through Ink's <Text> component.
+// Force Unicode block fallback by clearing terminal detection env vars.
+async function renderTerminalImage(buffer: Uint8Array, width: number): Promise<string> {
+  const saved = {
+    KONSOLE_VERSION: process.env.KONSOLE_VERSION,
+    TERM_PROGRAM: process.env.TERM_PROGRAM,
+  };
+  process.env.KONSOLE_VERSION = "";
+  process.env.TERM_PROGRAM = "";
+  try {
+    return await terminalImage.buffer(buffer, { width, preserveAspectRatio: true });
+  } finally {
+    if (saved.KONSOLE_VERSION !== undefined) process.env.KONSOLE_VERSION = saved.KONSOLE_VERSION;
+    if (saved.TERM_PROGRAM !== undefined) process.env.TERM_PROGRAM = saved.TERM_PROGRAM;
+  }
+}
+
 // Helper function for calculating target thumbnail width
 const calculateTargetWidth = (availableWidth: number): number => {
   if (availableWidth < 30) {
@@ -117,10 +134,7 @@ function useThumbnailLoader(
         const arrayBuffer = await response.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
 
-        const image = await terminalImage.buffer(uint8Array, {
-          width: targetWidth,
-          preserveAspectRatio: true,
-        });
+        const image = await renderTerminalImage(uint8Array, targetWidth);
 
         if (image) {
           setImageData(image);
@@ -239,10 +253,7 @@ export function ThumbnailPreview({
         const arrayBuffer = await response.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
 
-        const image = await terminalImage.buffer(uint8Array, {
-          width: targetWidth,
-          preserveAspectRatio: true,
-        });
+        const image = await renderTerminalImage(uint8Array, targetWidth);
 
         if (image) {
           // Cache the preloaded image
