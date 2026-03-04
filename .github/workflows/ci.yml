@@ -22,8 +22,8 @@ jobs:
       - name: Type check
         run: bash scripts/ci-typecheck
 
-  build:
-    name: Build Binary
+  build-cli-binary:
+    name: Build CLI Binary
     runs-on: ubuntu-latest
     needs: typecheck
 
@@ -39,10 +39,38 @@ jobs:
           bun-version: latest
 
       - name: Build CLI binary
-        run: bash scripts/ci-build
+        run: bash scripts/ci-build-cli-binary
 
       - name: Upload binary as artifact
         uses: actions/upload-artifact@v4
         with:
           name: subs
           path: packages/cli/subs
+
+  build-api-docker:
+    name: Build API Docker Image
+    runs-on: ubuntu-latest
+    needs: typecheck
+    if: github.event_name == 'push'
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the Docker image
+        run: docker build . --file packages/api/Dockerfile --tag ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push the Docker image
+        run: docker push ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
+
+      - uses: actions/delete-package-versions@v5
+        with:
+          package-name: "${{ github.event.repository.name }}"
+          package-type: "container"
+          delete-only-untagged-versions: "true"
