@@ -7,9 +7,12 @@ import { AppHeader } from "./AppHeader";
 import { AppFooter } from "./AppFooter";
 import { QRCodeModal } from "./QRCodeModal";
 import { useAppStore } from "../store/appStore";
+import { useConfigStore } from "../store/configStore";
 import { useVideoNavigation } from "../hooks/useVideoNavigation";
 import { useColumnWidths } from "../hooks/useColumnWidths";
 import { useMouseScroll } from "../hooks/useMouseScroll";
+import { reinitializeClients } from "../services/client";
+import { queryClient } from "../queryClient";
 import type { VideoItem } from "../types";
 
 interface VideoListProps {
@@ -94,6 +97,10 @@ export function VideoList({
         markVideoAsWatched(selectedVideo.videoId);
         onSelectInViewer(selectedVideo);
       }
+    } else if (input === "`") {
+      useConfigStore.getState().cycleHost();
+      reinitializeClients();
+      queryClient.clear();
     }
   });
 

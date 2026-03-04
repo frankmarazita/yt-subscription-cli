@@ -5,10 +5,12 @@ import { VideosModule } from './videos/videos.module.js';
 import { WatchLaterModule } from './watch-later/watch-later.module.js';
 import { HistoryModule } from './history/history.module.js';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module.js';
+import { EventsModule } from './events/events.module.js';
 
 @Module({
   imports: [
     PrismaModule,
+    EventsModule,
     VideosModule,
     WatchLaterModule,
     HistoryModule,

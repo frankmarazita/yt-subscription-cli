@@ -3,6 +3,7 @@ import chokidar, { type FSWatcher } from "chokidar";
 import type { AppConfig } from "../utils/config";
 import {
   DEFAULT_CONFIG,
+  getApiUrls,
   getConfigPath,
   loadConfig,
   saveConfig,
@@ -12,6 +13,8 @@ interface ConfigState {
   config: AppConfig;
   isWatching: boolean;
   watcher: FSWatcher | null;
+  activeHostIndex: number;
+  hostVersion: number;
 
   // Actions
   loadConfig: () => void;
@@ -21,12 +24,16 @@ interface ConfigState {
   ) => void;
   startWatching: () => void;
   stopWatching: () => void;
+  cycleHost: () => void;
+  getActiveApiUrl: () => string;
 }
 
 export const useConfigStore = create<ConfigState>((set, get) => ({
   config: DEFAULT_CONFIG,
   isWatching: false,
   watcher: null,
+  activeHostIndex: 0,
+  hostVersion: 0,
 
   loadConfig: () => {
     const config = loadConfig();
@@ -105,5 +112,19 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       watcher.close();
       set({ watcher: null, isWatching: false });
     }
+  },
+
+  cycleHost: () => {
+    const { config, activeHostIndex, hostVersion } = get();
+    const urls = getApiUrls(config);
+    if (urls.length <= 1) return;
+    const newIndex = (activeHostIndex + 1) % urls.length;
+    set({ activeHostIndex: newIndex, hostVersion: hostVersion + 1 });
+  },
+
+  getActiveApiUrl: () => {
+    const { config, activeHostIndex } = get();
+    const urls = getApiUrls(config);
+    return urls[activeHostIndex % Math.max(1, urls.length)] ?? "http://localhost:3000";
   },
 }));

@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { EventsGateway } from '../events/events.gateway.js';
 
 const WATCH_LATER_PLAYLIST_ID = 'watch_later';
 
 @Injectable()
 export class WatchLaterService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: EventsGateway,
+  ) {}
 
   async getIds(): Promise<string[]> {
     const rows = await this.prisma.playlistVideo.findMany({
@@ -37,12 +41,14 @@ export class WatchLaterService {
       },
       update: {},
     });
+    this.events.broadcast('watchLater');
   }
 
   async remove(videoId: string): Promise<void> {
     await this.prisma.playlistVideo.deleteMany({
       where: { playlistId: WATCH_LATER_PLAYLIST_ID, videoId },
     });
+    this.events.broadcast('watchLater');
   }
 
   private async ensurePlaylistExists(): Promise<void> {

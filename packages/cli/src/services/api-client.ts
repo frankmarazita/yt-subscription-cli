@@ -1,16 +1,9 @@
 import type { VideoDto } from "@subs/contracts";
 import type { VideoItem } from "../types";
+import { useConfigStore } from "../store/configStore";
 
 export function getApiBaseUrl(): string {
-  try {
-    const { loadConfig } = require("../utils/config");
-    const config = loadConfig();
-    if (config.apiUrl) return config.apiUrl;
-  } catch {
-    // fall through to default
-  }
-
-  return "http://localhost:3000";
+  return useConfigStore.getState().getActiveApiUrl();
 }
 
 export function deserializeVideo(v: VideoDto): VideoItem {

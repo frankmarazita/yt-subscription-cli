@@ -3,6 +3,7 @@ import { parseString } from 'xml2js';
 import { promisify } from 'util';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
+import { EventsGateway } from '../events/events.gateway.js';
 import type { VideoDto } from '@subs/contracts';
 
 const parseStringPromise = promisify(parseString);
@@ -79,6 +80,7 @@ export class VideosService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly subscriptionsService: SubscriptionsService,
+    private readonly events: EventsGateway,
   ) {}
 
   async getVideos(includeShorts = false): Promise<VideoDto[]> {
@@ -157,7 +159,9 @@ export class VideosService {
         orderBy: { published: 'desc' },
       });
 
-      return videos.map(toDto);
+      const result = videos.map(toDto);
+      this.events.broadcast('videos');
+      return result;
     } finally {
       this.isRefreshing = false;
     }

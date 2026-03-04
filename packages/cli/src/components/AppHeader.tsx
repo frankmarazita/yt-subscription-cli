@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import { getApiBaseUrl } from "../services/api-client";
+import { useConfigStore } from "../store/configStore";
 
 interface AppHeaderProps {
   refreshing: boolean;
@@ -13,13 +13,12 @@ function AppHeaderComponent({
   lastUpdated,
   cacheAge,
 }: AppHeaderProps) {
-  const apiUrl = getApiBaseUrl();
+  const activeUrl = useConfigStore((state) => state.getActiveApiUrl());
   const host = (() => {
     try {
-      const u = new URL(apiUrl);
-      return u.host;
+      return new URL(activeUrl).host;
     } catch {
-      return apiUrl;
+      return activeUrl;
     }
   })();
 

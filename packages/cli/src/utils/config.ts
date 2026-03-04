@@ -8,7 +8,7 @@ const AppConfigSchema = z.object({
     thumbnailPreview: z.boolean(),
     autoRefresh: z.boolean(),
   }),
-  apiUrl: z.string().optional(),
+  apiUrl: z.union([z.string(), z.array(z.string())]).optional(),
 });
 
 export type AppConfig = z.infer<typeof AppConfigSchema>;
@@ -63,6 +63,11 @@ export function loadConfig(): AppConfig {
     saveConfig(DEFAULT_CONFIG);
     return DEFAULT_CONFIG;
   }
+}
+
+export function getApiUrls(config: AppConfig): string[] {
+  if (!config.apiUrl) return ["http://localhost:3000"];
+  return Array.isArray(config.apiUrl) ? config.apiUrl : [config.apiUrl];
 }
 
 export function saveConfig(config: AppConfig): void {

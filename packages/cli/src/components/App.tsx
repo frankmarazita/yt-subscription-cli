@@ -12,6 +12,7 @@ import {
 import { useHistoryQuery } from "../hooks/useHistoryQuery";
 import type { VideoItem } from "../types";
 import { getApiBaseUrl } from "../services/api-client";
+import { useWebSocket } from "../hooks/useWebSocket";
 import { useEffect, useState } from "react";
 
 export function App() {
@@ -35,6 +36,8 @@ export function App() {
       process.stdout.off("resize", handleResize);
     };
   }, []);
+
+  useWebSocket();
 
   const configStore = useConfigStore();
   const { config } = configStore;
