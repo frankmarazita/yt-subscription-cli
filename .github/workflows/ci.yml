@@ -60,17 +60,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Get short SHA
+        id: sha
+        run: echo "short=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
       - name: Build the Docker image
-        run: docker build . --file packages/api/Dockerfile --tag ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
+          docker build . --file packages/api/Dockerfile \
+            --tag $IMAGE:latest \
+            --tag $IMAGE:${{ steps.sha.outputs.short }}
 
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Push the Docker image
-        run: docker push ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
+          docker push $IMAGE:latest
+          docker push $IMAGE:${{ steps.sha.outputs.short }}
 
       - uses: actions/delete-package-versions@v5
         with:
           package-name: "${{ github.event.repository.name }}"
           package-type: "container"
           delete-only-untagged-versions: "true"
+
+      - uses: actions/delete-package-versions@v5
+        with:
+          package-name: "${{ github.event.repository.name }}"
+          package-type: "container"
+          min-versions-to-keep: 5
+          ignore-versions: "^latest$"
