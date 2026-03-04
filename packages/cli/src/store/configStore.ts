@@ -75,7 +75,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
     const configPath = getConfigPath();
     const newWatcher = chokidar.watch(configPath, {
-      persistent: true,
+      persistent: false,
       ignoreInitial: true,
     });
 
