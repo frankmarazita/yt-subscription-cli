@@ -1,10 +1,5 @@
 import { create } from "zustand";
-import {
-  watchLaterAdd,
-  watchLaterRemove,
-  markVideoAsWatched,
-  markVideoAsUnwatched,
-} from "../services/api-client";
+import { apiClient } from "../services/client";
 import { useConfigStore } from "./configStore";
 import { queryClient } from "../queryClient";
 
@@ -85,76 +80,65 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   toggleVideoWatchLater: async (videoId: string) => {
-    try {
-      const isAdded = get().isVideoInWatchLater(videoId);
-      if (isAdded) {
-        await watchLaterRemove(videoId);
-      } else {
-        await watchLaterAdd(videoId);
-      }
-      set((state) => {
-        const newWatchLaterIds = new Set(state.watchLaterIds);
-        if (isAdded) {
-          newWatchLaterIds.delete(videoId);
-        } else {
-          newWatchLaterIds.add(videoId);
-        }
-        return { watchLaterIds: newWatchLaterIds };
-      });
-      queryClient.invalidateQueries({ queryKey: ["watchLater"] });
-    } catch (err) {
-      set({
-        error:
-          err instanceof Error ? err.message : "Failed to toggle watch later",
-      });
+    const isAdded = get().isVideoInWatchLater(videoId);
+    const result = isAdded
+      ? await apiClient.watchLater.remove({ params: { videoId } })
+      : await apiClient.watchLater.add({ params: { videoId } });
+
+    if (result.status !== 204) {
+      set({ error: `API error: ${result.status}` });
+      return;
     }
+
+    set((state) => {
+      const newWatchLaterIds = new Set(state.watchLaterIds);
+      if (isAdded) {
+        newWatchLaterIds.delete(videoId);
+      } else {
+        newWatchLaterIds.add(videoId);
+      }
+      return { watchLaterIds: newWatchLaterIds };
+    });
+    queryClient.invalidateQueries({ queryKey: ["watchLater"] });
   },
 
   markVideoAsWatched: async (videoId: string) => {
-    try {
-      await markVideoAsWatched(videoId);
-      set((state) => {
-        const newWatchedIds = new Set(state.watchedIds);
-        newWatchedIds.add(videoId);
-        return { watchedIds: newWatchedIds };
-      });
-      queryClient.invalidateQueries({ queryKey: ["history"] });
-    } catch (err) {
-      set({
-        error:
-          err instanceof Error
-            ? err.message
-            : "Failed to mark video as watched",
-      });
+    const result = await apiClient.history.markWatched({ params: { videoId } });
+
+    if (result.status !== 204) {
+      set({ error: `API error: ${result.status}` });
+      return;
     }
+
+    set((state) => {
+      const newWatchedIds = new Set(state.watchedIds);
+      newWatchedIds.add(videoId);
+      return { watchedIds: newWatchedIds };
+    });
+    queryClient.invalidateQueries({ queryKey: ["history"] });
   },
 
   toggleVideoWatchedStatus: async (videoId: string) => {
-    try {
-      const isWatched = get().isVideoWatched(videoId);
-      if (isWatched) {
-        await markVideoAsUnwatched(videoId);
-      } else {
-        await markVideoAsWatched(videoId);
-      }
-      set((state) => {
-        const newWatchedIds = new Set(state.watchedIds);
-        if (isWatched) {
-          newWatchedIds.delete(videoId);
-        } else {
-          newWatchedIds.add(videoId);
-        }
-        return { watchedIds: newWatchedIds };
-      });
-      queryClient.invalidateQueries({ queryKey: ["history"] });
-    } catch (err) {
-      set({
-        error:
-          err instanceof Error
-            ? err.message
-            : "Failed to toggle watched status",
-      });
+    const isWatched = get().isVideoWatched(videoId);
+    const result = isWatched
+      ? await apiClient.history.markUnwatched({ params: { videoId } })
+      : await apiClient.history.markWatched({ params: { videoId } });
+
+    if (result.status !== 204) {
+      set({ error: `API error: ${result.status}` });
+      return;
     }
+
+    set((state) => {
+      const newWatchedIds = new Set(state.watchedIds);
+      if (isWatched) {
+        newWatchedIds.delete(videoId);
+      } else {
+        newWatchedIds.add(videoId);
+      }
+      return { watchedIds: newWatchedIds };
+    });
+    queryClient.invalidateQueries({ queryKey: ["history"] });
   },
 
   isVideoInWatchLater: (videoId: string) => {

@@ -1,25 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  getApiBaseUrl,
-  deserializeVideo,
-  type RawVideoDto,
-} from "../services/api-client";
+import { useQueryClient } from "@tanstack/react-query";
+import { tsrQueryClient } from "../services/client";
+import { deserializeVideo } from "../services/api-client";
 
 export const videosQueryKey = ["videos"] as const;
 
 export function useVideosQuery(refetchInterval?: number | false) {
-  return useQuery({
+  return tsrQueryClient.videos.getVideos.useQuery({
     queryKey: videosQueryKey,
-    queryFn: async () => {
-      const base = getApiBaseUrl();
-      const response = await fetch(`${base}/videos`);
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-      return response.json() as Promise<RawVideoDto[]>;
-    },
-    select: (data) =>
-      data
+    select: (result) =>
+      result.body
         .map(deserializeVideo)
         .filter((v) => v.videoId && v.title && v.channel && v.link)
         .sort((a, b) => b.published.getTime() - a.published.getTime()),
@@ -29,16 +18,7 @@ export function useVideosQuery(refetchInterval?: number | false) {
 
 export function useRefreshVideosMutation() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      const base = getApiBaseUrl();
-      const response = await fetch(`${base}/videos/refresh`, {
-        method: "POST",
-      });
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-    },
+  return tsrQueryClient.videos.refreshVideos.useMutation({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: videosQueryKey });
     },

@@ -110,7 +110,7 @@ export function App() {
   };
 
   const handleRefresh = () => {
-    refreshMutation.mutate();
+    refreshMutation.mutate({});
   };
 
   const mutationError = store.error;

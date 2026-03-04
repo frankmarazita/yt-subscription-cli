@@ -14,7 +14,7 @@ function AppHeaderComponent({
 }: AppHeaderProps) {
   return (
     <Box justifyContent="space-between">
-      <Text color="cyan">📺 YouTube Subscription Feed</Text>
+      <Text color="cyan">📺 subs</Text>
       <Box>
         {refreshing && <Text color="yellow">🔄 Refreshing...</Text>}
         {lastUpdated && !refreshing && (
