@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef, useState } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput, useStdin } from "ink";
 import { ScrollBar } from "./ScrollBar";
 import { formatTimeAgo, getChannelColor } from "../utils/dateUtils";
 import { ThumbnailPreview } from "./ThumbnailPreview";
@@ -268,6 +268,40 @@ export function VideoList({
     );
     setCurrentSelection(newIndex);
   };
+
+  // Mouse scroll via raw stdin (Ink strips \x1b so useInput can't detect mouse sequences)
+  const { stdin } = useStdin();
+  const navigateUpRef = useRef(navigateUp);
+  const navigateDownRef = useRef(navigateDown);
+  navigateUpRef.current = navigateUp;
+  navigateDownRef.current = navigateDown;
+
+  useEffect(() => {
+    if (!stdin) return;
+
+    const handleMouseData = (data: Buffer) => {
+      // X10 encoding: ESC [ M <button+32> <x+32> <y+32>
+      if (data[0] === 0x1b && data[1] === 0x5b && data[2] === 0x4d) {
+        const button = (data[3] ?? 0) - 32;
+        if (button === 64) navigateUpRef.current();
+        else if (button === 65) navigateDownRef.current();
+        return;
+      }
+      // SGR encoding: ESC [ < button ; x ; y M
+      const str = data.toString("binary");
+      const sgr = str.match(/^\x1b\[<(\d+);\d+;\d+M/);
+      if (sgr) {
+        const button = parseInt(sgr[1], 10);
+        if (button === 64) navigateUpRef.current();
+        else if (button === 65) navigateDownRef.current();
+      }
+    };
+
+    stdin.on("data", handleMouseData);
+    return () => {
+      stdin.off("data", handleMouseData);
+    };
+  }, [stdin]);
 
   // Keyboard input handling
   useInput((input, key) => {
