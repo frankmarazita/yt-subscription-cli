@@ -11,6 +11,7 @@ import {
 } from "../hooks/useVideosQuery";
 import { useHistoryQuery } from "../hooks/useHistoryQuery";
 import type { VideoItem } from "../types";
+import { getApiBaseUrl } from "../services/api-client";
 import { useEffect, useState } from "react";
 
 export function App() {
@@ -101,7 +102,7 @@ export function App() {
 
   const handleVideoSelectInViewer = (video: VideoItem) => {
     const v = video.link.split("v=")[1] ?? "";
-    openUrl(`http://localhost:4000/watch?v=${encodeURIComponent(v)}`);
+    openUrl(`${getApiBaseUrl()}/watch?v=${encodeURIComponent(v)}`);
   };
 
   const handleExit = () => {

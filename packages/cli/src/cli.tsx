@@ -5,44 +5,7 @@ import { hideBin } from "yargs/helpers";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./queryClient";
 import { App } from "./components/App";
-import { resolve } from "path";
-
 const argv = await yargs(hideBin(process.argv))
-  .command(
-    "viewer",
-    "Start web server for watching videos",
-    (yargs) => {
-      return yargs.option("port", {
-        alias: "p",
-        describe: "Port to run the server on",
-        type: "number",
-        default: 4000,
-      });
-    },
-    async (argv) => {
-      const watchHtmlPath = resolve(import.meta.dir, "../watch.html");
-
-      Bun.serve({
-        port: argv.port,
-        async fetch(req) {
-          const url = new URL(req.url);
-
-          if (url.pathname === "/watch") {
-            const file = Bun.file(watchHtmlPath);
-            return new Response(file, {
-              headers: {
-                "Content-Type": "text/html",
-              },
-            });
-          }
-
-          return new Response("Not Found", { status: 404 });
-        },
-      });
-
-      console.log(`🎬 Viewer server running at http://localhost:${argv.port}`);
-    }
-  )
   .help()
   .alias("help", "h")
   .parse();
