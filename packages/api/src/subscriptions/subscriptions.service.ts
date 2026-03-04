@@ -72,6 +72,14 @@ export class SubscriptionsService {
     }
   }
 
+  async exportToCsv(): Promise<string> {
+    const rows = await this.prisma.subscription.findMany({
+      orderBy: { title: 'asc' },
+    });
+    const lines = rows.map((r) => `${r.channelId},${r.channelUrl ?? ''},${r.title}`);
+    return ['Channel ID,Channel URL,Channel title', ...lines].join('\n');
+  }
+
   async importFromCsv(csv: string): Promise<SubscriptionDto[]> {
     const lines = csv.trim().split('\n');
     const subscriptions: {

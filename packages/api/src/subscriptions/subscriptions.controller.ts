@@ -1,5 +1,7 @@
 import {
   Controller,
+  Get,
+  Header,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -35,6 +37,13 @@ export class SubscriptionsController {
       await this.subscriptionsService.remove(params.channelId);
       return { status: 204 as const, body: undefined };
     });
+  }
+
+  @Get('/subscriptions/export-csv')
+  @Header('Content-Type', 'text/csv')
+  @Header('Content-Disposition', 'attachment; filename="subscriptions.csv"')
+  async exportCsv() {
+    return this.subscriptionsService.exportToCsv();
   }
 
   @Post('/subscriptions/import-csv')
