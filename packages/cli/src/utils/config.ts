@@ -21,7 +21,7 @@ export const DEFAULT_CONFIG: AppConfig = {
 };
 
 export function getConfigDir(): string {
-  return join(homedir(), ".config", "yt-subscription-cli");
+  return join(homedir(), ".config", "subs");
 }
 
 export function getConfigPath(): string {
