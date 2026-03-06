@@ -118,7 +118,7 @@ export class VideosService {
 
       if (allVideos.length > 0) {
         const now = BigInt(Date.now());
-        await this.prisma.$transaction(
+        const upsertResults = await Promise.allSettled(
           allVideos.map((v) =>
             this.prisma.video.upsert({
               where: { id: v.videoId },
@@ -150,6 +150,13 @@ export class VideosService {
             }),
           ),
         );
+        for (const [i, result] of upsertResults.entries()) {
+          if (result.status === 'rejected') {
+            this.logger.warn(
+              `Failed to upsert video ${allVideos[i]!.videoId}: ${result.reason}`,
+            );
+          }
+        }
       }
 
       await this.pruneStaleVideos();
