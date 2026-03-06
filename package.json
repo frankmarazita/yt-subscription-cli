@@ -1,16 +1,7 @@
 {
   "name": "subs",
   "version": "1.0.0",
-  "devDependencies": {
-    "@types/ws": "^8.18.1",
-    "api": "workspace:*"
-  },
   "workspaces": [
     "packages/*"
-  ],
-  "dependencies": {
-    "@nestjs/platform-ws": "^11.1.15",
-    "@nestjs/websockets": "^11.1.15",
-    "ws": "^8.19.0"
-  }
+  ]
 }

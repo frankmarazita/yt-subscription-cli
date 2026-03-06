@@ -2,38 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import { Box, Text } from "ink";
 import { useAppStore } from "../store/appStore";
 import type { VideoItem } from "../types";
-import terminalImage from "terminal-image";
 import { formatNumber, truncateText } from "../utils/formatUtils";
-
-// IIP sequences (iTerm2 protocol) don't render through Ink's <Text> component.
-// Force Unicode block fallback by clearing terminal detection env vars.
-async function renderTerminalImage(buffer: Uint8Array, width: number): Promise<string> {
-  const saved = {
-    KONSOLE_VERSION: process.env.KONSOLE_VERSION,
-    TERM_PROGRAM: process.env.TERM_PROGRAM,
-  };
-  process.env.KONSOLE_VERSION = "";
-  process.env.TERM_PROGRAM = "";
-  try {
-    return await terminalImage.buffer(buffer, { width, preserveAspectRatio: true });
-  } finally {
-    if (saved.KONSOLE_VERSION !== undefined) process.env.KONSOLE_VERSION = saved.KONSOLE_VERSION;
-    if (saved.TERM_PROGRAM !== undefined) process.env.TERM_PROGRAM = saved.TERM_PROGRAM;
-  }
-}
-
-// Helper function for calculating target thumbnail width
-const calculateTargetWidth = (availableWidth: number): number => {
-  if (availableWidth < 30) {
-    return Math.max(16, availableWidth - 1);
-  } else if (availableWidth < 45) {
-    return Math.max(24, availableWidth - 2);
-  } else if (availableWidth < 70) {
-    return Math.max(35, availableWidth - 3);
-  } else {
-    return Math.max(50, Math.min(availableWidth - 4, 80));
-  }
-};
+import {
+  buildCacheKey,
+  calculateTargetWidth,
+  fetchAndRenderThumbnail,
+} from "../utils/thumbnailUtils";
 
 // Status indicators component
 function VideoStatusIndicators({
@@ -78,6 +52,8 @@ function VideoStats({ video, width }: { video: VideoItem; width: number }) {
   );
 }
 
+const THUMBNAIL_DEBOUNCE_MS = 150;
+
 // Custom hook for thumbnail loading
 function useThumbnailLoader(
   video: VideoItem | null,
@@ -99,58 +75,48 @@ function useThumbnailLoader(
       return;
     }
 
+    const cacheKey = buildCacheKey(video.videoId, stableDimensions.width, stableDimensions.height);
+    const cachedImage = getThumbnailFromCache(cacheKey);
+    if (cachedImage) {
+      setImageData(cachedImage);
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
     const loadThumbnailData = async () => {
       setLoading(true);
       setError("");
-
-      const cacheKey = `${video.videoId}-${stableDimensions.width}x${stableDimensions.height}`;
-      const cachedImage = getThumbnailFromCache(cacheKey);
-
-      if (cachedImage) {
-        setImageData(cachedImage);
-        setLoading(false);
-        return;
-      }
 
       try {
         const availableWidth = stableDimensions.width - 2;
         const targetWidth = calculateTargetWidth(availableWidth);
 
-        if (!video.thumbnailUrl) {
-          setError("No thumbnail URL available");
-          setImageData("");
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch(video.thumbnailUrl);
-        if (!response.ok) {
-          setError(`Failed to fetch thumbnail: ${response.statusText}`);
-          setImageData("");
-          setLoading(false);
-          return;
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-
-        const image = await renderTerminalImage(uint8Array, targetWidth);
+        const image = await fetchAndRenderThumbnail(video.thumbnailUrl!, targetWidth, controller.signal);
+        if (controller.signal.aborted) return;
 
         if (image) {
           setImageData(image);
           setThumbnailCache(cacheKey, image);
         } else {
           setImageData("");
+          setError("Failed to load thumbnail");
         }
       } catch (err) {
+        if (controller.signal.aborted) return;
         setError(err instanceof Error ? err.message : "Unknown error");
         setImageData("");
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
-    loadThumbnailData();
+    const timer = setTimeout(loadThumbnailData, THUMBNAIL_DEBOUNCE_MS);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [
     video?.videoId,
     video?.thumbnailUrl,
@@ -206,75 +172,15 @@ interface ThumbnailPreviewProps {
   video: VideoItem | null;
   width: number;
   height: number;
-  preloadVideo?: VideoItem | null;
 }
 
-export function ThumbnailPreview({
-  video,
-  width,
-  height,
-  preloadVideo,
-}: ThumbnailPreviewProps) {
-  // Use store for preloading and video status
-  const getThumbnailFromCache = useAppStore(
-    (state) => state.getThumbnailFromCache
-  );
-  const setThumbnailCache = useAppStore((state) => state.setThumbnailCache);
+export function ThumbnailPreview({ video, width, height }: ThumbnailPreviewProps) {
   const isVideoInWatchLater = useAppStore((state) => state.isVideoInWatchLater);
   const isVideoWatched = useAppStore((state) => state.isVideoWatched);
 
-  // Memoize stable dimensions with better scaling increments
   const stableDimensions = useMemo(() => ({ width, height }), [width, height]);
 
-  const { imageData, loading, error } = useThumbnailLoader(
-    video,
-    stableDimensions
-  );
-
-  // Preload next video thumbnail
-  useEffect(() => {
-    if (!preloadVideo?.thumbnailUrl) return;
-
-    const preloadThumbnailData = async () => {
-      const cacheKey = `${preloadVideo.videoId}-${stableDimensions.width}x${stableDimensions.height}`;
-
-      // Skip if already cached
-      if (getThumbnailFromCache(cacheKey)) return;
-
-      try {
-        // Calculate target dimensions
-        const availableWidth = stableDimensions.width - 2;
-        const targetWidth = calculateTargetWidth(availableWidth);
-
-        if (!preloadVideo.thumbnailUrl) return;
-        const response = await fetch(preloadVideo.thumbnailUrl);
-        if (!response.ok) return;
-
-        const arrayBuffer = await response.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-
-        const image = await renderTerminalImage(uint8Array, targetWidth);
-
-        if (image) {
-          // Cache the preloaded image
-          setThumbnailCache(cacheKey, image);
-        }
-      } catch (err) {
-        // Silently fail preloading to avoid disrupting main UI
-      }
-    };
-
-    // Delay preloading slightly to not interfere with main thumbnail
-    const timer = setTimeout(preloadThumbnailData, 100);
-    return () => clearTimeout(timer);
-  }, [
-    preloadVideo?.videoId,
-    preloadVideo?.thumbnailUrl,
-    stableDimensions.width,
-    stableDimensions.height,
-    getThumbnailFromCache,
-    setThumbnailCache,
-  ]);
+  const { imageData, loading, error } = useThumbnailLoader(video, stableDimensions);
 
   if (!video) {
     return (

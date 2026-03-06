@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import type { VideoItem } from "../types";
 
-export function useVideoNavigation(videos: VideoItem[], listHeight: number, resetKey: unknown) {
+export function useVideoNavigation(
+  videos: VideoItem[],
+  listHeight: number,
+  resetKey: unknown
+) {
   const [currentSelection, setCurrentSelection] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
 
@@ -25,6 +29,11 @@ export function useVideoNavigation(videos: VideoItem[], listHeight: number, rese
 
   const nextVideo = useMemo(
     () => videos[currentSelection + 1] ?? null,
+    [videos, currentSelection]
+  );
+
+  const prevVideo = useMemo(
+    () => videos[currentSelection - 1] ?? null,
     [videos, currentSelection]
   );
 
@@ -55,6 +64,7 @@ export function useVideoNavigation(videos: VideoItem[], listHeight: number, rese
     scrollOffset,
     selectedVideo,
     nextVideo,
+    prevVideo,
     navigateUp,
     navigateDown,
     pageUp,

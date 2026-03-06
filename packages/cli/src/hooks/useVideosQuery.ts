@@ -16,9 +16,12 @@ export function useVideosQuery(refetchInterval?: number | false) {
   });
 }
 
+export const refreshVideosMutationKey = ["refreshVideos"] as const;
+
 export function useRefreshVideosMutation() {
   const queryClient = useQueryClient();
   return tsrQueryClient.videos.refreshVideos.useMutation({
+    mutationKey: refreshVideosMutationKey,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: videosQueryKey });
     },

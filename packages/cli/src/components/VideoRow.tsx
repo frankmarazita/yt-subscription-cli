@@ -46,7 +46,6 @@ function VideoRowComponent({
     <Box
       width="100%"
       paddingX={1}
-      {...(isSelected ? { backgroundColor: "yellow" } : {})}
     >
       <Box flexDirection="row" width="100%">
         <Box width={3} marginRight={1} flexShrink={0}>

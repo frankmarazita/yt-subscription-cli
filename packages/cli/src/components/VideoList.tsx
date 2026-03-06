@@ -11,6 +11,7 @@ import { useConfigStore } from "../store/configStore";
 import { useVideoNavigation } from "../hooks/useVideoNavigation";
 import { useColumnWidths } from "../hooks/useColumnWidths";
 import { useMouseScroll } from "../hooks/useMouseScroll";
+import { useThumbnailPreloader } from "../hooks/useThumbnailPreloader";
 import { reinitializeClients } from "../services/client";
 import { queryClient } from "../queryClient";
 import type { VideoItem } from "../types";
@@ -21,7 +22,6 @@ interface VideoListProps {
   onSelectInViewer?: (video: VideoItem) => void;
   onExit: () => void;
   onRefresh?: () => void;
-  refreshing?: boolean;
   lastUpdated?: Date | null;
   cacheAge?: number;
   terminalWidth: number;
@@ -34,7 +34,6 @@ export function VideoList({
   onSelectInViewer,
   onExit,
   onRefresh,
-  refreshing = false,
   lastUpdated,
   cacheAge = 0,
   terminalWidth,
@@ -65,7 +64,7 @@ export function VideoList({
   const listHeight = Math.max(1, terminalHeight - 10);
   const columnWidths = useColumnWidths(listWidth - 15);
 
-  const { currentSelection, scrollOffset, selectedVideo, nextVideo, navigateUp, navigateDown, pageUp, pageDown } =
+  const { currentSelection, scrollOffset, selectedVideo, nextVideo, prevVideo, navigateUp, navigateDown, pageUp, pageDown } =
     useVideoNavigation(filteredVideos, listHeight, showWatchLaterOnly);
 
   useMouseScroll(navigateUp, navigateDown);
@@ -107,10 +106,21 @@ export function VideoList({
   const startIndex = scrollOffset;
   const endIndex = Math.min(startIndex + listHeight, filteredVideos.length);
 
+  const preloadVideos = useMemo(
+    () => [
+      ...filteredVideos.slice(startIndex, endIndex),
+      nextVideo,
+      prevVideo,
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [startIndex, endIndex, nextVideo, prevVideo, filteredVideos]
+  );
+
+  useThumbnailPreloader(showPreview ? preloadVideos : [], { width: thumbnailWidth, height: listHeight + 2 });
+
   return (
     <Box flexDirection="column" height={terminalHeight} width={terminalWidth}>
       <AppHeader
-        refreshing={refreshing}
         lastUpdated={lastUpdated || null}
         cacheAge={cacheAge}
       />
@@ -169,7 +179,6 @@ export function VideoList({
               video={selectedVideo}
               width={thumbnailWidth}
               height={listHeight + 2}
-              preloadVideo={nextVideo}
             />
           </Box>
         )}

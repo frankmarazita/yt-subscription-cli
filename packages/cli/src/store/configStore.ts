@@ -29,7 +29,7 @@ interface ConfigState {
 }
 
 export const useConfigStore = create<ConfigState>((set, get) => ({
-  config: DEFAULT_CONFIG,
+  config: loadConfig(),
   isWatching: false,
   watcher: null,
   activeHostIndex: 0,
@@ -125,6 +125,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   getActiveApiUrl: () => {
     const { config, activeHostIndex } = get();
     const urls = getApiUrls(config);
-    return urls[activeHostIndex % Math.max(1, urls.length)] ?? "http://localhost:3000";
+    return (
+      urls[activeHostIndex % Math.max(1, urls.length)] ??
+      "http://localhost:3000"
+    );
   },
 }));

@@ -153,7 +153,6 @@ export function App() {
         onSelectInViewer={handleVideoSelectInViewer}
         onExit={handleExit}
         onRefresh={handleRefresh}
-        refreshing={refreshMutation.isPending}
         lastUpdated={lastUpdated}
         cacheAge={cacheAge}
         terminalWidth={dimensions.width}
