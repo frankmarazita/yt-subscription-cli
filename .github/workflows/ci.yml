@@ -66,7 +66,7 @@ jobs:
 
       - name: Build the Docker image
         run: |
-          IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
+          IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-api
           docker build . --file packages/api/Dockerfile \
             --tag $IMAGE:latest \
             --tag $IMAGE:${{ steps.sha.outputs.short }}
@@ -76,19 +76,19 @@ jobs:
 
       - name: Push the Docker image
         run: |
-          IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
+          IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-api
           docker push $IMAGE:latest
           docker push $IMAGE:${{ steps.sha.outputs.short }}
 
       - uses: actions/delete-package-versions@v5
         with:
-          package-name: "${{ github.event.repository.name }}"
+          package-name: "${{ github.event.repository.name }}-api"
           package-type: "container"
           delete-only-untagged-versions: "true"
 
       - uses: actions/delete-package-versions@v5
         with:
-          package-name: "${{ github.event.repository.name }}"
+          package-name: "${{ github.event.repository.name }}-api"
           package-type: "container"
           min-versions-to-keep: 1
           ignore-versions: "^latest$"

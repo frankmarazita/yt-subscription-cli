@@ -5,8 +5,15 @@ import { reinitializeClients } from "../services/client";
 import { queryClient } from "../queryClient";
 
 export function Settings() {
-  const { hosts, activeHostIndex, addHost, removeHost, setActiveHost } =
-    useConfigStore();
+  const {
+    hosts,
+    activeHostIndex,
+    addHost,
+    removeHost,
+    setActiveHost,
+    useInternalPlayer,
+    setUseInternalPlayer,
+  } = useConfigStore();
   const [newUrl, setNewUrl] = useState("");
 
   function handleSetActive(index: number) {
@@ -70,6 +77,26 @@ export function Settings() {
             </div>
           );
         })}
+      </div>
+      <div className="text-[11px] font-semibold text-[#888] uppercase tracking-[0.8px] mb-2.5 mt-6">
+        Playback
+      </div>
+      <div
+        className="flex items-center justify-between p-3 rounded-lg bg-[#f5f5f5] cursor-pointer [-webkit-tap-highlight-color:transparent]"
+        onClick={() => setUseInternalPlayer(!useInternalPlayer)}
+      >
+        <span className="text-sm text-[#333]">Use internal player</span>
+        <div
+          className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 ${useInternalPlayer ? "bg-[#2196f3]" : "bg-[#ccc]"}`}
+        >
+          <div
+            className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${useInternalPlayer ? "translate-x-5" : "translate-x-0"}`}
+          />
+        </div>
+      </div>
+
+      <div className="text-[11px] font-semibold text-[#888] uppercase tracking-[0.8px] mb-2.5 mt-6">
+        Add Host
       </div>
       <div className="flex gap-2">
         <input

@@ -9,9 +9,11 @@ import {
   Bookmark,
   Settings as SettingsIcon,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { queryClient } from "./queryClient";
 import { apiClient } from "./services/client";
+import { useConfigStore } from "./store/configStore";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useVideoScreen } from "./hooks/useVideoScreen";
 import type { VideoItem } from "./types";
@@ -100,8 +102,8 @@ function VideoList({
 
   if (isLoading)
     return (
-      <div className="py-10 px-4 text-center text-sm text-[#333]">
-        Loading...
+      <div className="py-10 flex justify-center text-[#888]">
+        <Loader2 size={24} className="animate-spin" />
       </div>
     );
   if (error) {
@@ -134,11 +136,8 @@ function VideoList({
         />
       ))}
       {visibleCount < filtered.length && (
-        <div
-          ref={sentinelRef}
-          className="py-10 px-4 text-center text-sm text-gray-400"
-        >
-          Loading more...
+        <div ref={sentinelRef} className="py-6 flex justify-center text-[#888]">
+          <Loader2 size={20} className="animate-spin" />
         </div>
       )}
     </div>
@@ -148,6 +147,18 @@ function VideoList({
 function AppContent() {
   const [tab, setTab] = useState<Tab>("videos");
   const [watchingVideo, setWatchingVideo] = useState<VideoItem | null>(null);
+  const useInternalPlayer = useConfigStore((s) => s.useInternalPlayer);
+
+  const handleWatch = useCallback(
+    (video: VideoItem) => {
+      if (useInternalPlayer) {
+        setWatchingVideo(video);
+      } else {
+        window.open(video.link, "_blank");
+      }
+    },
+    [useInternalPlayer]
+  );
 
   const tabClass = (t: Tab) =>
     `flex-1 flex flex-col items-center gap-[3px] py-2.5 border-0 bg-transparent cursor-pointer text-[11px] [-webkit-tap-highlight-color:transparent] ${tab === t ? "text-[#2196f3]" : "text-[#888]"}`;
@@ -167,9 +178,9 @@ function AppContent() {
         </div>
       )}
       <div className="flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch]">
-        {tab === "videos" && <VideoList onWatch={setWatchingVideo} />}
+        {tab === "videos" && <VideoList onWatch={handleWatch} />}
         {tab === "watchLater" && (
-          <VideoList filterWatchLater onWatch={setWatchingVideo} />
+          <VideoList filterWatchLater onWatch={handleWatch} />
         )}
         {tab === "settings" && <Settings />}
       </div>
