@@ -14,3 +14,6 @@ bun run tsc --noEmit
 
 cd "$ROOT/packages/api"
 bun run tsc --noEmit
+
+cd "$ROOT/packages/web"
+bunx tsc -b

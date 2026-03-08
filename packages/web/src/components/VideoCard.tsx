@@ -7,6 +7,7 @@ interface Props {
   isWatchLater: boolean;
   onToggleWatched: () => void;
   onToggleWatchLater: () => void;
+  onWatch: (video: VideoItem) => void;
 }
 
 const SWIPE_THRESHOLD = 60;
@@ -17,6 +18,7 @@ export function VideoCard({
   isWatchLater,
   onToggleWatched,
   onToggleWatchLater,
+  onWatch,
 }: Props) {
   let startX = 0;
   let currentX = 0;
@@ -38,7 +40,7 @@ export function VideoCard({
 
   function openVideo() {
     if (!isWatched) onToggleWatched();
-    window.open(video.link, "_blank");
+    onWatch(video);
   }
 
   return (

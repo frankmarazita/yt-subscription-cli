@@ -14,8 +14,10 @@ import { queryClient } from "./queryClient";
 import { apiClient } from "./services/client";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useVideoScreen } from "./hooks/useVideoScreen";
+import type { VideoItem } from "./types";
 import { VideoCard } from "./components/VideoCard";
 import { Settings } from "./components/Settings";
+import { WatchScreen } from "./components/WatchScreen";
 import { videosQueryKey } from "./hooks/useVideosQuery";
 
 const PAGE_SIZE = 30;
@@ -50,7 +52,13 @@ function RefreshButton() {
   );
 }
 
-function VideoList({ filterWatchLater }: { filterWatchLater?: boolean }) {
+function VideoList({
+  filterWatchLater,
+  onWatch,
+}: {
+  filterWatchLater?: boolean;
+  onWatch: (video: VideoItem) => void;
+}) {
   const {
     videos,
     isLoading,
@@ -122,6 +130,7 @@ function VideoList({ filterWatchLater }: { filterWatchLater?: boolean }) {
           isWatchLater={watchLaterIds.has(video.videoId)}
           onToggleWatched={() => toggleWatched(video.videoId)}
           onToggleWatchLater={() => toggleWatchLater(video.videoId)}
+          onWatch={onWatch}
         />
       ))}
       {visibleCount < filtered.length && (
@@ -138,12 +147,19 @@ function VideoList({ filterWatchLater }: { filterWatchLater?: boolean }) {
 
 function AppContent() {
   const [tab, setTab] = useState<Tab>("videos");
+  const [watchingVideo, setWatchingVideo] = useState<VideoItem | null>(null);
 
   const tabClass = (t: Tab) =>
     `flex-1 flex flex-col items-center gap-[3px] py-2.5 border-0 bg-transparent cursor-pointer text-[11px] [-webkit-tap-highlight-color:transparent] ${tab === t ? "text-[#2196f3]" : "text-[#888]"}`;
 
   return (
     <div className="flex flex-col h-[100dvh] max-w-[600px] mx-auto bg-white">
+      {watchingVideo && (
+        <WatchScreen
+          video={watchingVideo}
+          onClose={() => setWatchingVideo(null)}
+        />
+      )}
       {tab === "videos" && (
         <div className="flex items-center justify-between px-3 py-2 border-b border-[#e0e0e0]">
           <span className="text-sm font-semibold text-[#333]">Videos</span>
@@ -151,8 +167,10 @@ function AppContent() {
         </div>
       )}
       <div className="flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch]">
-        {tab === "videos" && <VideoList />}
-        {tab === "watchLater" && <VideoList filterWatchLater />}
+        {tab === "videos" && <VideoList onWatch={setWatchingVideo} />}
+        {tab === "watchLater" && (
+          <VideoList filterWatchLater onWatch={setWatchingVideo} />
+        )}
         {tab === "settings" && <Settings />}
       </div>
       <nav className="flex border-t border-[#e0e0e0] bg-white pb-[env(safe-area-inset-bottom)]">
