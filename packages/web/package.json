@@ -13,6 +13,7 @@
     "@subs/contracts": "workspace:*",
     "@tanstack/react-query": "^5.90.21",
     "@ts-rest/core": "^3.52.1",
+    "lucide-react": "^0.577.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "zustand": "^5.0.7"

@@ -1,4 +1,5 @@
-import type { VideoItem } from '../types';
+import { Eye, EyeOff, Check, Bookmark, BookmarkPlus } from "lucide-react";
+import type { VideoItem } from "../types";
 
 interface Props {
   video: VideoItem;
@@ -10,7 +11,13 @@ interface Props {
 
 const SWIPE_THRESHOLD = 60;
 
-export function VideoCard({ video, isWatched, isWatchLater, onToggleWatched, onToggleWatchLater }: Props) {
+export function VideoCard({
+  video,
+  isWatched,
+  isWatchLater,
+  onToggleWatched,
+  onToggleWatchLater,
+}: Props) {
   let startX = 0;
   let currentX = 0;
 
@@ -30,12 +37,13 @@ export function VideoCard({ video, isWatched, isWatchLater, onToggleWatched, onT
   }
 
   function openVideo() {
-    window.open(video.link, '_blank');
+    if (!isWatched) onToggleWatched();
+    window.open(video.link, "_blank");
   }
 
   return (
     <div
-      className={`flex items-start gap-3 p-3 border-b border-[#e0e0e0] cursor-pointer select-none touch-pan-y [-webkit-tap-highlight-color:transparent] active:bg-[#f5f5f5] ${isWatched ? 'bg-[#fafafa]' : 'bg-white'}`}
+      className={`flex items-start gap-3 p-3 border-b border-[#e0e0e0] cursor-pointer select-none touch-pan-y [-webkit-tap-highlight-color:transparent] active:bg-[#f5f5f5] ${isWatched ? "bg-[#fafafa]" : "bg-white"}`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -43,38 +51,59 @@ export function VideoCard({ video, isWatched, isWatchLater, onToggleWatched, onT
     >
       <div className="relative flex-shrink-0 w-[120px] h-[68px] rounded overflow-hidden bg-[#e0e0e0]">
         {video.thumbnailUrl ? (
-          <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover" />
+          <img
+            src={video.thumbnailUrl}
+            alt={video.title}
+            className="w-full h-full object-cover"
+          />
         ) : (
           <div className="w-full h-full bg-[#d0d0d0]" />
         )}
         {isWatched && (
-          <div className="absolute inset-0 bg-black/45 flex items-center justify-center text-white text-[22px]">✓</div>
+          <div className="absolute inset-0 bg-black/45 flex items-center justify-center text-white">
+            <Check size={22} strokeWidth={3} />
+          </div>
         )}
         {isWatchLater && (
-          <div className="absolute top-1 right-1 text-xs">🔖</div>
+          <div className="absolute top-1 right-1 text-white drop-shadow">
+            <Bookmark size={14} fill="currentColor" />
+          </div>
         )}
       </div>
       <div className="flex-1 min-w-0 flex flex-col gap-1">
-        <div className={`text-sm font-semibold leading-[1.4] line-clamp-2 ${isWatched ? 'text-[#999]' : 'text-[#111]'}`}>
+        <div
+          className={`text-sm font-semibold leading-[1.4] line-clamp-2 ${isWatched ? "text-[#999]" : "text-[#111]"}`}
+        >
           {video.title}
         </div>
         <div className="text-xs text-[#555] truncate">{video.channel}</div>
-        <div className="text-[11px] text-[#999]">{video.publishedFormatted}</div>
+        <div className="text-[11px] text-[#999]">
+          {video.publishedFormatted}
+        </div>
       </div>
-      <div className="flex flex-col gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="flex flex-col gap-1.5 flex-shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
-          className={`w-8 h-8 border-none rounded-md cursor-pointer text-sm flex items-center justify-center [-webkit-tap-highlight-color:transparent] active:bg-[#e0e0e0] ${isWatched ? 'bg-[#e3f2fd]' : 'bg-[#f0f0f0]'}`}
+          className={`w-8 h-8 border-none rounded-md cursor-pointer flex items-center justify-center [-webkit-tap-highlight-color:transparent] active:bg-[#e0e0e0] ${isWatched ? "bg-[#e3f2fd] text-[#2196f3]" : "bg-[#f0f0f0] text-[#555]"}`}
           onClick={onToggleWatched}
-          title={isWatched ? 'Mark unwatched' : 'Mark watched'}
+          title={isWatched ? "Mark unwatched" : "Mark watched"}
         >
-          {isWatched ? '👁' : '○'}
+          {isWatched ? <Eye size={15} /> : <EyeOff size={15} />}
         </button>
         <button
-          className={`w-8 h-8 border-none rounded-md cursor-pointer text-sm flex items-center justify-center [-webkit-tap-highlight-color:transparent] active:bg-[#e0e0e0] ${isWatchLater ? 'bg-[#e3f2fd]' : 'bg-[#f0f0f0]'}`}
+          className={`w-8 h-8 border-none rounded-md cursor-pointer flex items-center justify-center [-webkit-tap-highlight-color:transparent] active:bg-[#e0e0e0] ${isWatchLater ? "bg-[#e3f2fd] text-[#2196f3]" : "bg-[#f0f0f0] text-[#555]"}`}
           onClick={onToggleWatchLater}
-          title={isWatchLater ? 'Remove from watch later' : 'Add to watch later'}
+          title={
+            isWatchLater ? "Remove from watch later" : "Add to watch later"
+          }
         >
-          {isWatchLater ? '🔖' : '＋'}
+          {isWatchLater ? (
+            <Bookmark size={15} fill="currentColor" />
+          ) : (
+            <BookmarkPlus size={15} />
+          )}
         </button>
       </div>
     </div>

@@ -1,11 +1,13 @@
-import { useState } from 'react';
-import { useConfigStore } from '../store/configStore';
-import { reinitializeClients } from '../services/client';
-import { queryClient } from '../queryClient';
+import { useState } from "react";
+import { Check, X } from "lucide-react";
+import { useConfigStore } from "../store/configStore";
+import { reinitializeClients } from "../services/client";
+import { queryClient } from "../queryClient";
 
 export function Settings() {
-  const { hosts, activeHostIndex, addHost, removeHost, setActiveHost } = useConfigStore();
-  const [newUrl, setNewUrl] = useState('');
+  const { hosts, activeHostIndex, addHost, removeHost, setActiveHost } =
+    useConfigStore();
+  const [newUrl, setNewUrl] = useState("");
 
   function handleSetActive(index: number) {
     if (index === activeHostIndex) return;
@@ -18,7 +20,7 @@ export function Settings() {
     const url = newUrl.trim();
     if (!url) return;
     addHost(url);
-    setNewUrl('');
+    setNewUrl("");
   }
 
   function handleRemove(index: number) {
@@ -30,26 +32,39 @@ export function Settings() {
 
   return (
     <div className="p-4">
-      <div className="text-[11px] font-semibold text-[#888] uppercase tracking-[0.8px] mb-2.5">Hosts</div>
+      <div className="text-[11px] font-semibold text-[#888] uppercase tracking-[0.8px] mb-2.5">
+        Hosts
+      </div>
       <div className="flex flex-col gap-2 mb-4">
         {hosts.map((host, index) => {
           const isActive = index === activeHostIndex;
           return (
             <div
               key={index}
-              className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer [-webkit-tap-highlight-color:transparent] active:bg-[#ebebeb] ${isActive ? 'bg-[#e3f2fd]' : 'bg-[#f5f5f5]'}`}
+              className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer [-webkit-tap-highlight-color:transparent] active:bg-[#ebebeb] ${isActive ? "bg-[#e3f2fd]" : "bg-[#f5f5f5]"}`}
               onClick={() => handleSetActive(index)}
             >
-              <span className={`flex-1 text-sm overflow-hidden text-ellipsis whitespace-nowrap ${isActive ? 'text-[#2196f3] font-medium' : 'text-[#333]'}`}>
+              <span
+                className={`flex-1 text-sm overflow-hidden text-ellipsis whitespace-nowrap ${isActive ? "text-[#2196f3] font-medium" : "text-[#333]"}`}
+              >
                 {host}
               </span>
-              {isActive && <span className="text-[#2196f3] font-semibold">✓</span>}
+              {isActive && (
+                <Check
+                  size={16}
+                  className="text-[#2196f3] flex-shrink-0"
+                  strokeWidth={2.5}
+                />
+              )}
               {hosts.length > 1 && (
                 <button
-                  className="border-none bg-transparent text-red-500 text-sm cursor-pointer p-1 leading-none"
-                  onClick={(e) => { e.stopPropagation(); handleRemove(index); }}
+                  className="border-none bg-transparent text-red-500 cursor-pointer p-1 flex items-center"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(index);
+                  }}
                 >
-                  ✕
+                  <X size={15} />
                 </button>
               )}
             </div>
@@ -62,13 +77,13 @@ export function Settings() {
           value={newUrl}
           onChange={(e) => setNewUrl(e.target.value)}
           placeholder="http://192.168.1.x:3000"
-          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
         />
         <button
-          className="bg-[#2196f3] text-white border-none rounded-lg px-[18px] text-[22px] cursor-pointer active:bg-[#1976d2]"
+          className="bg-[#2196f3] text-white border-none rounded-lg px-[18px] text-[22px] cursor-pointer active:bg-[#1976d2] flex items-center justify-center"
           onClick={handleAdd}
         >
-          +
+          <X size={20} className="rotate-45" />
         </button>
       </div>
     </div>
