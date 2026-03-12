@@ -14,4 +14,5 @@ RUN cd packages/web && bun run build
 
 FROM nginx:1.29.5-alpine-slim AS release
 COPY --from=build /app/packages/web/dist /usr/share/nginx/html
+COPY packages/web/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

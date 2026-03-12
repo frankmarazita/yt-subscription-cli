@@ -22,6 +22,13 @@ import { Settings } from "./components/Settings";
 import { WatchScreen } from "./components/WatchScreen";
 import { videosQueryKey } from "./hooks/useVideosQuery";
 
+const watchParams =
+  window.location.pathname === "/watch"
+    ? new URLSearchParams(window.location.search)
+    : null;
+const watchVideoId = watchParams?.get("v") ?? null;
+const watchIsShort = watchParams?.get("short") === "true";
+
 const PAGE_SIZE = 30;
 
 type Tab = "videos" | "watchLater" | "settings";
@@ -146,13 +153,16 @@ function VideoList({
 
 function AppContent() {
   const [tab, setTab] = useState<Tab>("videos");
-  const [watchingVideo, setWatchingVideo] = useState<VideoItem | null>(null);
   const useInternalPlayer = useConfigStore((s) => s.useInternalPlayer);
 
   const handleWatch = useCallback(
     (video: VideoItem) => {
       if (useInternalPlayer) {
-        setWatchingVideo(video);
+        const params = new URLSearchParams({
+          v: video.videoId,
+          short: String(video.isShort),
+        });
+        window.open(`${window.location.origin}/watch?${params}`, "_blank");
       } else {
         window.open(video.link, "_blank");
       }
@@ -165,12 +175,6 @@ function AppContent() {
 
   return (
     <div className="flex flex-col h-[100dvh] max-w-[600px] mx-auto bg-white">
-      {watchingVideo && (
-        <WatchScreen
-          video={watchingVideo}
-          onClose={() => setWatchingVideo(null)}
-        />
-      )}
       {tab === "videos" && (
         <div className="flex items-center justify-between px-3 py-2 border-b border-[#e0e0e0]">
           <span className="text-sm font-semibold text-[#333]">Videos</span>
@@ -206,6 +210,16 @@ function AppContent() {
 }
 
 export default function App() {
+  if (watchVideoId) {
+    return (
+      <WatchScreen
+        videoId={watchVideoId}
+        isShort={watchIsShort}
+        onClose={() => window.close()}
+      />
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <WebSocketProvider />
