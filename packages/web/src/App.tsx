@@ -177,7 +177,7 @@ function AppContent() {
     <div className="flex flex-col h-[100dvh] max-w-[600px] mx-auto bg-white">
       {tab === "videos" && (
         <div className="flex items-center justify-between px-3 py-2 border-b border-[#e0e0e0]">
-          <span className="text-sm font-semibold text-[#333]">Videos</span>
+          <span className="text-sm font-semibold text-[#333]">Subs</span>
           <RefreshButton />
         </div>
       )}
