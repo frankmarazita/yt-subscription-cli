@@ -76,7 +76,11 @@ export class SubscriptionsService {
     const rows = await this.prisma.subscription.findMany({
       orderBy: { title: 'asc' },
     });
-    const lines = rows.map((r) => `${r.channelId},${r.channelUrl ?? ''},${r.title}`);
+    const lines = rows.map((r) => {
+      const channelUrl =
+        r.channelUrl ?? `https://www.youtube.com/channel/${r.channelId}`;
+      return `${r.channelId},${channelUrl},${r.title}`;
+    });
     return ['Channel ID,Channel URL,Channel title', ...lines].join('\n');
   }
 
