@@ -6,21 +6,14 @@ export function useVideoNavigation(
   listHeight: number,
   resetKey: unknown
 ) {
-  const [currentSelection, setCurrentSelection] = useState(0);
-  const [scrollOffset, setScrollOffset] = useState(0);
+  const [{ currentSelection, scrollOffset }, setNavState] = useState({
+    currentSelection: 0,
+    scrollOffset: 0,
+  });
 
   useEffect(() => {
-    setCurrentSelection(0);
-    setScrollOffset(0);
+    setNavState({ currentSelection: 0, scrollOffset: 0 });
   }, [resetKey]);
-
-  useEffect(() => {
-    if (currentSelection < scrollOffset) {
-      setScrollOffset(currentSelection);
-    } else if (currentSelection >= scrollOffset + listHeight) {
-      setScrollOffset(currentSelection - listHeight + 1);
-    }
-  }, [currentSelection, listHeight, scrollOffset]);
 
   const selectedVideo = useMemo(
     () => videos[currentSelection] ?? null,
@@ -37,26 +30,42 @@ export function useVideoNavigation(
     [videos, currentSelection]
   );
 
+  const computeScrollOffset = (selection: number, curScroll: number) => {
+    if (selection < curScroll) return selection;
+    if (selection >= curScroll + listHeight) return selection - listHeight + 1;
+    return curScroll;
+  };
+
   const navigateUp = () => {
     if (videos.length === 0) return;
-    setCurrentSelection((i) => Math.max(0, i - 1));
+    setNavState(({ currentSelection: cur, scrollOffset: scroll }) => {
+      const next = Math.max(0, cur - 1);
+      return { currentSelection: next, scrollOffset: computeScrollOffset(next, scroll) };
+    });
   };
 
   const navigateDown = () => {
     if (videos.length === 0) return;
-    setCurrentSelection((i) => Math.min(videos.length - 1, i + 1));
+    setNavState(({ currentSelection: cur, scrollOffset: scroll }) => {
+      const next = Math.min(videos.length - 1, cur + 1);
+      return { currentSelection: next, scrollOffset: computeScrollOffset(next, scroll) };
+    });
   };
 
   const pageUp = () => {
     if (videos.length === 0) return;
-    const pageSize = Math.max(1, listHeight - 1);
-    setCurrentSelection((i) => Math.max(0, i - pageSize));
+    setNavState(({ currentSelection: cur, scrollOffset: scroll }) => {
+      const next = Math.max(0, cur - Math.max(1, listHeight - 1));
+      return { currentSelection: next, scrollOffset: computeScrollOffset(next, scroll) };
+    });
   };
 
   const pageDown = () => {
     if (videos.length === 0) return;
-    const pageSize = Math.max(1, listHeight - 1);
-    setCurrentSelection((i) => Math.min(videos.length - 1, i + pageSize));
+    setNavState(({ currentSelection: cur, scrollOffset: scroll }) => {
+      const next = Math.min(videos.length - 1, cur + Math.max(1, listHeight - 1));
+      return { currentSelection: next, scrollOffset: computeScrollOffset(next, scroll) };
+    });
   };
 
   return {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useCallback } from "react";
 import { Box, Text, useInput } from "ink";
 import { ScrollBar } from "./ScrollBar";
 import { VideoRow } from "./VideoRow";
@@ -17,7 +17,6 @@ import { queryClient } from "../queryClient";
 import type { VideoItem } from "../types";
 
 interface VideoListProps {
-  videos: VideoItem[];
   onSelect: (video: VideoItem) => void;
   onSelectInViewer?: (video: VideoItem) => void;
   onExit: () => void;
@@ -29,7 +28,6 @@ interface VideoListProps {
 }
 
 export function VideoList({
-  videos,
   onSelect,
   onSelectInViewer,
   onExit,
@@ -41,16 +39,22 @@ export function VideoList({
 }: VideoListProps) {
   const [showQRModal, setShowQRModal] = useState(false);
 
+  const videos = useAppStore((state) => state.videos);
   const showPreview = useAppStore((state) => state.showPreview);
   const showWatchLaterOnly = useAppStore((state) => state.showWatchLaterOnly);
   const togglePreview = useAppStore((state) => state.togglePreview);
-  const toggleWatchLaterOnly = useAppStore((state) => state.toggleWatchLaterOnly);
-  const toggleVideoWatchLater = useAppStore((state) => state.toggleVideoWatchLater);
+  const toggleWatchLaterOnly = useAppStore(
+    (state) => state.toggleWatchLaterOnly
+  );
+  const toggleVideoWatchLater = useAppStore(
+    (state) => state.toggleVideoWatchLater
+  );
   const markVideoAsWatched = useAppStore((state) => state.markVideoAsWatched);
-  const toggleVideoWatchedStatus = useAppStore((state) => state.toggleVideoWatchedStatus);
+  const toggleVideoWatchedStatus = useAppStore(
+    (state) => state.toggleVideoWatchedStatus
+  );
   const watchLaterIds = useAppStore((state) => state.watchLaterIds);
-  const isVideoInWatchLater = useAppStore((state) => state.isVideoInWatchLater);
-  const isVideoWatched = useAppStore((state) => state.isVideoWatched);
+  const watchedIds = useAppStore((state) => state.watchedIds);
 
   const filteredVideos = useMemo(() => {
     if (showWatchLaterOnly) {
@@ -59,71 +63,119 @@ export function VideoList({
     return videos;
   }, [videos, showWatchLaterOnly, watchLaterIds]);
 
-  const thumbnailWidth = showPreview ? Math.min(60, Math.floor(terminalWidth * 0.5)) : 0;
+  const thumbnailWidth = showPreview
+    ? Math.min(60, Math.floor(terminalWidth * 0.5))
+    : 0;
   const listWidth = terminalWidth - thumbnailWidth;
   const listHeight = Math.max(1, terminalHeight - 10);
   const columnWidths = useColumnWidths(listWidth - 15);
 
-  const { currentSelection, scrollOffset, selectedVideo, nextVideo, prevVideo, navigateUp, navigateDown, pageUp, pageDown } =
-    useVideoNavigation(filteredVideos, listHeight, showWatchLaterOnly);
+  const {
+    currentSelection,
+    scrollOffset,
+    selectedVideo,
+    nextVideo,
+    prevVideo,
+    navigateUp,
+    navigateDown,
+    pageUp,
+    pageDown,
+  } = useVideoNavigation(filteredVideos, listHeight, showWatchLaterOnly);
 
   useMouseScroll(navigateUp, navigateDown);
 
-  useInput((input, key) => {
-    if (showQRModal) return;
-
-    if (key.upArrow || input === "k") navigateUp();
-    else if (key.downArrow || input === "j") navigateDown();
-    else if (key.pageUp) pageUp();
-    else if (key.pageDown) pageDown();
-    else if (key.return || input === "o") {
-      if (selectedVideo) {
-        markVideoAsWatched(selectedVideo.videoId);
-        onSelect(selectedVideo);
-      }
-    } else if (input === "q" || key.escape) onExit();
-    else if (input === "r") onRefresh?.();
-    else if (input === "p") togglePreview();
-    else if (input === "w") {
-      if (selectedVideo) toggleVideoWatchLater(selectedVideo.videoId);
-    } else if (input === "l") toggleWatchLaterOnly();
-    else if (input === "m") {
-      if (selectedVideo) toggleVideoWatchedStatus(selectedVideo.videoId);
-    } else if (input === "s") {
-      if (selectedVideo) setShowQRModal(true);
-    } else if (input === "v") {
-      if (selectedVideo && onSelectInViewer) {
-        markVideoAsWatched(selectedVideo.videoId);
-        onSelectInViewer(selectedVideo);
-      }
-    } else if (input === "`") {
-      useConfigStore.getState().cycleHost();
-      reinitializeClients();
-      queryClient.clear();
-    }
+  const handlerRef = useRef({
+    showQRModal,
+    navigateUp,
+    navigateDown,
+    pageUp,
+    pageDown,
+    selectedVideo,
+    markVideoAsWatched,
+    togglePreview,
+    toggleVideoWatchLater,
+    toggleWatchLaterOnly,
+    toggleVideoWatchedStatus,
+    setShowQRModal,
+    onSelect,
+    onExit,
+    onRefresh,
+    onSelectInViewer,
   });
+  handlerRef.current = {
+    showQRModal,
+    navigateUp,
+    navigateDown,
+    pageUp,
+    pageDown,
+    selectedVideo,
+    markVideoAsWatched,
+    togglePreview,
+    toggleVideoWatchLater,
+    toggleWatchLaterOnly,
+    toggleVideoWatchedStatus,
+    setShowQRModal,
+    onSelect,
+    onExit,
+    onRefresh,
+    onSelectInViewer,
+  };
+
+  useInput(
+    useCallback((input, key) => {
+      const h = handlerRef.current;
+      if (h.showQRModal) return;
+
+      if (key.upArrow || input === "k") h.navigateUp();
+      else if (key.downArrow || input === "j") h.navigateDown();
+      else if (key.pageUp) h.pageUp();
+      else if (key.pageDown) h.pageDown();
+      else if (key.return || input === "o") {
+        if (h.selectedVideo) {
+          h.markVideoAsWatched(h.selectedVideo.videoId);
+          h.onSelect(h.selectedVideo);
+        }
+      } else if (input === "q" || key.escape) h.onExit();
+      else if (input === "r") h.onRefresh?.();
+      else if (input === "p") h.togglePreview();
+      else if (input === "w") {
+        if (h.selectedVideo) h.toggleVideoWatchLater(h.selectedVideo.videoId);
+      } else if (input === "l") h.toggleWatchLaterOnly();
+      else if (input === "m") {
+        if (h.selectedVideo)
+          h.toggleVideoWatchedStatus(h.selectedVideo.videoId);
+      } else if (input === "s") {
+        if (h.selectedVideo) h.setShowQRModal(true);
+      } else if (input === "v") {
+        if (h.selectedVideo && h.onSelectInViewer) {
+          h.markVideoAsWatched(h.selectedVideo.videoId);
+          h.onSelectInViewer(h.selectedVideo);
+        }
+      } else if (input === "`") {
+        useConfigStore.getState().cycleHost();
+        reinitializeClients();
+        queryClient.clear();
+      }
+    }, [])
+  );
 
   const startIndex = scrollOffset;
   const endIndex = Math.min(startIndex + listHeight, filteredVideos.length);
 
   const preloadVideos = useMemo(
-    () => [
-      ...filteredVideos.slice(startIndex, endIndex),
-      nextVideo,
-      prevVideo,
-    ],
+    () => [...filteredVideos.slice(startIndex, endIndex), nextVideo, prevVideo],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [startIndex, endIndex, nextVideo, prevVideo, filteredVideos]
   );
 
-  useThumbnailPreloader(showPreview ? preloadVideos : [], { width: thumbnailWidth, height: listHeight + 2 });
+  useThumbnailPreloader(showPreview ? preloadVideos : [], {
+    width: thumbnailWidth,
+    height: listHeight + 2,
+  });
 
   return (
     <Box flexDirection="column" height={terminalHeight} width={terminalWidth}>
-      <AppHeader
-        lastUpdated={lastUpdated || null}
-        cacheAge={cacheAge}
-      />
+      <AppHeader lastUpdated={lastUpdated || null} cacheAge={cacheAge} />
 
       <Box flexDirection="row" flexGrow={1} marginTop={1}>
         <Box
@@ -138,13 +190,19 @@ export function VideoList({
                 <Text color="gray" bold></Text>
               </Box>
               <Box width={columnWidths.channelWidth - 4} marginRight={2}>
-                <Text color="gray" bold>CHANNEL</Text>
+                <Text color="gray" bold>
+                  CHANNEL
+                </Text>
               </Box>
               <Box width={columnWidths.titleWidth} marginRight={2}>
-                <Text color="gray" bold>TITLE</Text>
+                <Text color="gray" bold>
+                  TITLE
+                </Text>
               </Box>
               <Box width={columnWidths.dateWidth}>
-                <Text color="gray" bold>PUBLISHED</Text>
+                <Text color="gray" bold>
+                  PUBLISHED
+                </Text>
               </Box>
             </Box>
           </Box>
@@ -159,8 +217,8 @@ export function VideoList({
                   channelWidth={columnWidths.channelWidth}
                   titleWidth={columnWidths.titleWidth}
                   dateWidth={columnWidths.dateWidth}
-                  isInWatchLater={isVideoInWatchLater(video.videoId)}
-                  isWatched={isVideoWatched(video.videoId)}
+                  isInWatchLater={watchLaterIds.has(video.videoId)}
+                  isWatched={watchedIds.has(video.videoId)}
                 />
               ))}
             </Box>

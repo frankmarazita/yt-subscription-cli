@@ -46,9 +46,9 @@ export function App() {
     : false;
 
   const {
-    data: videos,
     isPending,
     error,
+    data: videosData,
     dataUpdatedAt,
   } = useVideosQuery(autoRefreshInterval);
   const refreshMutation = useRefreshVideosMutation();
@@ -56,7 +56,14 @@ export function App() {
   const { data: historyData } = useHistoryQuery();
   const { data: watchLaterData } = useWatchLater();
 
-  const store = useAppStore();
+  const initializeApp = useAppStore((state) => state.initializeApp);
+  const mutationError = useAppStore((state) => state.error);
+
+  useEffect(() => {
+    if (videosData) {
+      useAppStore.getState().setVideos(videosData, dataUpdatedAt);
+    }
+  }, [videosData, dataUpdatedAt]);
 
   useEffect(() => {
     if (historyData) {
@@ -71,7 +78,7 @@ export function App() {
   }, [watchLaterData]);
 
   useEffect(() => {
-    store.initializeApp();
+    initializeApp();
   }, []);
 
   useEffect(() => {
@@ -96,7 +103,7 @@ export function App() {
         : process.platform === "win32"
           ? "start"
           : "xdg-open";
-    exec(`${command} "${url}"`);
+    exec(`${command} "${url}"`, () => {});
   };
 
   const handleVideoSelect = (video: VideoItem) => {
@@ -114,10 +121,9 @@ export function App() {
   };
 
   const handleRefresh = () => {
-    refreshMutation.mutate({});
+    refreshMutation.mutate();
   };
 
-  const mutationError = store.error;
   const queryError = error
     ? error instanceof Error
       ? error.message
@@ -148,7 +154,6 @@ export function App() {
   return (
     <Box height={dimensions.height}>
       <VideoList
-        videos={videos ?? []}
         onSelect={handleVideoSelect}
         onSelectInViewer={handleVideoSelectInViewer}
         onExit={handleExit}

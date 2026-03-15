@@ -1,10 +1,12 @@
 import { create } from "zustand";
 import { apiClient } from "../services/client";
 import { useConfigStore } from "./configStore";
-import { queryClient } from "../queryClient";
+import type { VideoItem } from "../types";
 
 interface AppState {
   // Video data
+  videos: VideoItem[];
+  videosUpdatedAt: number;
   watchLaterIds: Set<string>;
   watchedIds: Set<string>;
 
@@ -20,6 +22,7 @@ interface AppState {
 
   // Actions
   initializeApp: () => void;
+  setVideos: (videos: VideoItem[], updatedAt: number) => void;
   togglePreview: () => void;
   toggleWatchLaterOnly: () => void;
   setThumbnailCache: (videoId: string, thumbnailData: string) => void;
@@ -41,6 +44,8 @@ try {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
+  videos: [],
+  videosUpdatedAt: 0,
   watchLaterIds: new Set(),
   watchedIds: new Set(),
   error: null,
@@ -52,6 +57,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     const configStore = useConfigStore.getState();
     configStore.loadConfig();
     configStore.startWatching();
+  },
+
+  setVideos: (videos, updatedAt) => {
+    set({ videos, videosUpdatedAt: updatedAt });
   },
 
   togglePreview: () => {
@@ -81,64 +90,66 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   toggleVideoWatchLater: async (videoId: string) => {
     const isAdded = get().isVideoInWatchLater(videoId);
-    const result = isAdded
-      ? await apiClient.watchLater.remove({ params: { videoId } })
-      : await apiClient.watchLater.add({ params: { videoId } });
-
-    if (result.status !== 204) {
-      set({ error: `API error: ${result.status}` });
-      return;
-    }
-
     set((state) => {
       const newWatchLaterIds = new Set(state.watchLaterIds);
-      if (isAdded) {
-        newWatchLaterIds.delete(videoId);
-      } else {
-        newWatchLaterIds.add(videoId);
-      }
+      if (isAdded) newWatchLaterIds.delete(videoId);
+      else newWatchLaterIds.add(videoId);
       return { watchLaterIds: newWatchLaterIds };
     });
-    queryClient.invalidateQueries({ queryKey: ["watchLater"] });
+
+    const result = await (isAdded
+      ? apiClient.watchLater.remove({ params: { videoId } })
+      : apiClient.watchLater.add({ params: { videoId } }));
+
+    if (result.status !== 204) {
+      set((state) => {
+        const newWatchLaterIds = new Set(state.watchLaterIds);
+        if (isAdded) newWatchLaterIds.add(videoId);
+        else newWatchLaterIds.delete(videoId);
+        return { watchLaterIds: newWatchLaterIds, error: `API error: ${result.status}` };
+      });
+    }
   },
 
   markVideoAsWatched: async (videoId: string) => {
-    const result = await apiClient.history.markWatched({ params: { videoId } });
-
-    if (result.status !== 204) {
-      set({ error: `API error: ${result.status}` });
-      return;
-    }
-
+    if (get().isVideoWatched(videoId)) return;
     set((state) => {
       const newWatchedIds = new Set(state.watchedIds);
       newWatchedIds.add(videoId);
       return { watchedIds: newWatchedIds };
     });
-    queryClient.invalidateQueries({ queryKey: ["history"] });
+
+    const result = await apiClient.history.markWatched({ params: { videoId } });
+    if (result.status !== 204) {
+      set((state) => {
+        const newWatchedIds = new Set(state.watchedIds);
+        newWatchedIds.delete(videoId);
+        return { watchedIds: newWatchedIds, error: `API error: ${result.status}` };
+      });
+    }
   },
 
   toggleVideoWatchedStatus: async (videoId: string) => {
     const isWatched = get().isVideoWatched(videoId);
-    const result = isWatched
-      ? await apiClient.history.markUnwatched({ params: { videoId } })
-      : await apiClient.history.markWatched({ params: { videoId } });
-
-    if (result.status !== 204) {
-      set({ error: `API error: ${result.status}` });
-      return;
-    }
-
     set((state) => {
       const newWatchedIds = new Set(state.watchedIds);
-      if (isWatched) {
-        newWatchedIds.delete(videoId);
-      } else {
-        newWatchedIds.add(videoId);
-      }
+      if (isWatched) newWatchedIds.delete(videoId);
+      else newWatchedIds.add(videoId);
       return { watchedIds: newWatchedIds };
     });
-    queryClient.invalidateQueries({ queryKey: ["history"] });
+
+    const result = await (isWatched
+      ? apiClient.history.markUnwatched({ params: { videoId } })
+      : apiClient.history.markWatched({ params: { videoId } }));
+
+    if (result.status !== 204) {
+      set((state) => {
+        const newWatchedIds = new Set(state.watchedIds);
+        if (isWatched) newWatchedIds.add(videoId);
+        else newWatchedIds.delete(videoId);
+        return { watchedIds: newWatchedIds, error: `API error: ${result.status}` };
+      });
+    }
   },
 
   isVideoInWatchLater: (videoId: string) => {

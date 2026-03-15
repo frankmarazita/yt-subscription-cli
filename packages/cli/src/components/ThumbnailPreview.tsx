@@ -11,27 +11,20 @@ import {
 
 // Status indicators component
 function VideoStatusIndicators({
-  video,
-  isVideoWatched,
-  isVideoInWatchLater,
+  isWatched,
+  isInWatchLater,
 }: {
-  video: VideoItem;
-  isVideoWatched: (id: string) => boolean;
-  isVideoInWatchLater: (id: string) => boolean;
+  isWatched: boolean;
+  isInWatchLater: boolean;
 }) {
-  const hasStatus =
-    isVideoWatched(video.videoId) || isVideoInWatchLater(video.videoId);
-
-  if (!hasStatus) return null;
+  if (!isWatched && !isInWatchLater) return null;
 
   return (
     <Box marginTop={1} width="100%" overflow="hidden">
       <Text>
-        {isVideoInWatchLater(video.videoId) && <Text color="yellow">★ </Text>}
-        {isVideoWatched(video.videoId) && <Text color="cyan">● </Text>}
-        <Text color="gray">
-          {isVideoWatched(video.videoId) ? "Watched" : "Watch Later"}
-        </Text>
+        {isInWatchLater && <Text color="yellow">★ </Text>}
+        {isWatched && <Text color="cyan">● </Text>}
+        <Text color="gray">{isWatched ? "Watched" : "Watch Later"}</Text>
       </Text>
     </Box>
   );
@@ -75,7 +68,11 @@ function useThumbnailLoader(
       return;
     }
 
-    const cacheKey = buildCacheKey(video.videoId, stableDimensions.width, stableDimensions.height);
+    const cacheKey = buildCacheKey(
+      video.videoId,
+      stableDimensions.width,
+      stableDimensions.height
+    );
     const cachedImage = getThumbnailFromCache(cacheKey);
     if (cachedImage) {
       setImageData(cachedImage);
@@ -93,7 +90,11 @@ function useThumbnailLoader(
         const availableWidth = stableDimensions.width - 2;
         const targetWidth = calculateTargetWidth(availableWidth);
 
-        const image = await fetchAndRenderThumbnail(video.thumbnailUrl!, targetWidth, controller.signal);
+        const image = await fetchAndRenderThumbnail(
+          video.thumbnailUrl!,
+          targetWidth,
+          controller.signal
+        );
         if (controller.signal.aborted) return;
 
         if (image) {
@@ -133,13 +134,13 @@ function useThumbnailLoader(
 function VideoInfo({
   video,
   width,
-  isVideoWatched,
-  isVideoInWatchLater,
+  isWatched,
+  isInWatchLater,
 }: {
   video: VideoItem;
   width: number;
-  isVideoWatched: (id: string) => boolean;
-  isVideoInWatchLater: (id: string) => boolean;
+  isWatched: boolean;
+  isInWatchLater: boolean;
 }) {
   return (
     <>
@@ -152,9 +153,8 @@ function VideoInfo({
         <Text color="gray">{truncateText(video.channel, width - 4)}</Text>
       </Box>
       <VideoStatusIndicators
-        video={video}
-        isVideoWatched={isVideoWatched}
-        isVideoInWatchLater={isVideoInWatchLater}
+        isWatched={isWatched}
+        isInWatchLater={isInWatchLater}
       />
       <VideoStats video={video} width={width} />
       {video.description && (
@@ -174,13 +174,24 @@ interface ThumbnailPreviewProps {
   height: number;
 }
 
-export function ThumbnailPreview({ video, width, height }: ThumbnailPreviewProps) {
-  const isVideoInWatchLater = useAppStore((state) => state.isVideoInWatchLater);
-  const isVideoWatched = useAppStore((state) => state.isVideoWatched);
+export function ThumbnailPreview({
+  video,
+  width,
+  height,
+}: ThumbnailPreviewProps) {
+  const isInWatchLater = useAppStore((state) =>
+    video ? state.watchLaterIds.has(video.videoId) : false
+  );
+  const isWatched = useAppStore((state) =>
+    video ? state.watchedIds.has(video.videoId) : false
+  );
 
   const stableDimensions = useMemo(() => ({ width, height }), [width, height]);
 
-  const { imageData, loading, error } = useThumbnailLoader(video, stableDimensions);
+  const { imageData, loading, error } = useThumbnailLoader(
+    video,
+    stableDimensions
+  );
 
   if (!video) {
     return (
@@ -216,8 +227,8 @@ export function ThumbnailPreview({ video, width, height }: ThumbnailPreviewProps
           <VideoInfo
             video={video}
             width={width}
-            isVideoWatched={isVideoWatched}
-            isVideoInWatchLater={isVideoInWatchLater}
+            isWatched={isWatched}
+            isInWatchLater={isInWatchLater}
           />
         </Box>
       );
@@ -230,8 +241,8 @@ export function ThumbnailPreview({ video, width, height }: ThumbnailPreviewProps
         <VideoInfo
           video={video}
           width={width}
-          isVideoWatched={isVideoWatched}
-          isVideoInWatchLater={isVideoInWatchLater}
+          isWatched={isWatched}
+          isInWatchLater={isInWatchLater}
         />
       </Box>
     );
