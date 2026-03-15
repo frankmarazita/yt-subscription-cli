@@ -6,7 +6,7 @@
   "scripts": {
     "start": "bun src/cli.tsx",
     "dev": "bun --watch src/cli.tsx",
-    "build": "bun build --compile --outfile=subs src/cli.tsx",
+    "build": "bun build --compile --outfile=dist/subs src/cli.tsx",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check ."

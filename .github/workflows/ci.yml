@@ -45,7 +45,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: subs
-          path: packages/cli/subs
+          path: packages/cli/dist/subs
 
   build-api-docker:
     name: Build API Docker Image
