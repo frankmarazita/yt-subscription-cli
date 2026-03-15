@@ -211,13 +211,7 @@ function AppContent() {
 
 export default function App() {
   if (watchVideoId) {
-    return (
-      <WatchScreen
-        videoId={watchVideoId}
-        isShort={watchIsShort}
-        onClose={() => window.close()}
-      />
-    );
+    return <WatchScreen videoId={watchVideoId} isShort={watchIsShort} />;
   }
 
   return (
