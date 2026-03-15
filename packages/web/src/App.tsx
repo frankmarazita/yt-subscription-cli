@@ -158,10 +158,8 @@ function AppContent() {
   const handleWatch = useCallback(
     (video: VideoItem) => {
       if (useInternalPlayer) {
-        const params = new URLSearchParams({
-          v: video.videoId,
-          short: String(video.isShort),
-        });
+        const params = new URLSearchParams({ v: video.videoId });
+        if (video.isShort) params.set("short", "true");
         window.open(`${window.location.origin}/watch?${params}`, "_blank");
       } else {
         window.open(video.link, "_blank");
