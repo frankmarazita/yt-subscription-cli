@@ -104,19 +104,20 @@ export class SubscriptionsService {
 
     const now = BigInt(Date.now());
 
-    await this.prisma.$transaction([
-      this.prisma.subscription.deleteMany(),
-      ...subscriptions.map((s) =>
-        this.prisma.subscription.create({
-          data: {
+    await this.prisma.$transaction(
+      subscriptions.map((s) =>
+        this.prisma.subscription.upsert({
+          where: { channelId: s.channelId },
+          create: {
             channelId: s.channelId,
             title: s.title,
             channelUrl: s.channelUrl,
             createdAt: now,
           },
+          update: {},
         }),
       ),
-    ]);
+    );
 
     return subscriptions.map(toDto);
   }
