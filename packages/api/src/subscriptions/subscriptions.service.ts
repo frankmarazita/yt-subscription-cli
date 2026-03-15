@@ -7,15 +7,10 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { SubscriptionDto } from '@subs/contracts';
 
-function toDto(row: {
-  channelId: string;
-  title: string;
-  channelUrl: string | null;
-}): SubscriptionDto {
+function toDto(row: { channelId: string; title: string }): SubscriptionDto {
   return {
     channelId: row.channelId,
     title: row.title,
-    channelUrl: row.channelUrl ?? undefined,
   };
 }
 
@@ -53,7 +48,6 @@ export class SubscriptionsService {
       data: {
         channelId,
         title: channelTitle,
-        channelUrl: `https://www.youtube.com/channel/${channelId}`,
         createdAt: BigInt(Date.now()),
       },
     });
@@ -76,21 +70,16 @@ export class SubscriptionsService {
     const rows = await this.prisma.subscription.findMany({
       orderBy: { title: 'asc' },
     });
-    const lines = rows.map((r) => {
-      const channelUrl =
-        r.channelUrl ?? `https://www.youtube.com/channel/${r.channelId}`;
-      return `${r.channelId},${channelUrl},${r.title}`;
-    });
+    const lines = rows.map(
+      (r) =>
+        `${r.channelId},https://www.youtube.com/channel/${r.channelId},${r.title}`,
+    );
     return ['Channel ID,Channel URL,Channel title', ...lines].join('\n');
   }
 
   async importFromCsv(csv: string): Promise<SubscriptionDto[]> {
     const lines = csv.trim().split('\n');
-    const subscriptions: {
-      channelId: string;
-      title: string;
-      channelUrl: string | null;
-    }[] = [];
+    const subscriptions: { channelId: string; title: string }[] = [];
 
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
@@ -98,11 +87,10 @@ export class SubscriptionsService {
 
       const parts = line.split(',');
       const channelId = parts[0]?.trim();
-      const channelUrl = parts[1]?.trim() || null;
       const title = parts[2]?.trim();
 
       if (channelId && title) {
-        subscriptions.push({ channelId, title, channelUrl });
+        subscriptions.push({ channelId, title });
       }
     }
 
@@ -115,7 +103,6 @@ export class SubscriptionsService {
           create: {
             channelId: s.channelId,
             title: s.title,
-            channelUrl: s.channelUrl,
             createdAt: now,
           },
           update: {},

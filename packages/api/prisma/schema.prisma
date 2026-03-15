@@ -63,10 +63,9 @@ model WatchHistory {
 }
 
 model Subscription {
-  channelId  String  @id @map("channel_id")
-  title      String
-  channelUrl String? @map("channel_url")
-  createdAt  BigInt  @map("created_at")
+  channelId String @id @map("channel_id")
+  title     String
+  createdAt BigInt @map("created_at")
 
   @@map("subscription")
 }

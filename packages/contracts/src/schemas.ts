@@ -16,7 +16,6 @@ export const VideoSchema = z.object({
 export const SubscriptionSchema = z.object({
   channelId: z.string(),
   title: z.string(),
-  channelUrl: z.string().optional(),
 });
 
 export const IdsResponseSchema = z.object({
