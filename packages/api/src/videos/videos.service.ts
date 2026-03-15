@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { parseString } from 'xml2js';
 import { promisify } from 'util';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -82,6 +83,21 @@ export class VideosService {
     private readonly subscriptionsService: SubscriptionsService,
     private readonly events: EventsGateway,
   ) {}
+
+  @Cron(CronExpression.EVERY_6_HOURS)
+  async scheduledRefresh() {
+    this.logger.log('Scheduled video refresh starting');
+    try {
+      await this.refreshVideos(false);
+      this.logger.log('Scheduled video refresh complete');
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        this.logger.warn('Scheduled refresh skipped: refresh already in progress');
+      } else {
+        this.logger.error(`Scheduled video refresh failed: ${error}`);
+      }
+    }
+  }
 
   async getVideos(includeShorts = false): Promise<VideoDto[]> {
     const videos = await this.prisma.video.findMany({
