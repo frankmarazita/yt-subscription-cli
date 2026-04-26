@@ -1,44 +1,46 @@
 import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { parseString } from 'xml2js';
-import { promisify } from 'util';
+import { XMLParser } from 'fast-xml-parser';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 import { EventsGateway } from '../events/events.gateway.js';
 import type { VideoDto } from '@subs/contracts';
 
-const parseStringPromise = promisify(parseString);
+const FETCH_CONCURRENCY = 50;
 
-interface RssMediaThumbnail {
-  $: { url: string };
-}
+const xmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '',
+  parseAttributeValue: false,
+  parseTagValue: false,
+  isArray: (name) => name === 'entry' || name === 'media:thumbnail',
+});
 
-interface RssMediaStatistics {
-  $: { views: string };
-}
-
-interface RssMediaStarRating {
-  $: { count: string };
+interface RssAttr {
+  url?: string;
+  href?: string;
+  views?: string;
+  count?: string;
 }
 
 interface RssMediaCommunity {
-  'media:statistics'?: RssMediaStatistics[];
-  'media:starRating'?: RssMediaStarRating[];
+  'media:statistics'?: RssAttr;
+  'media:starRating'?: RssAttr;
 }
 
 interface RssMediaGroup {
-  'media:thumbnail'?: RssMediaThumbnail[];
-  'media:description'?: string[];
-  'media:community'?: RssMediaCommunity[];
+  'media:thumbnail'?: RssAttr[];
+  'media:description'?: string;
+  'media:community'?: RssMediaCommunity;
 }
 
 interface RssEntry {
-  'yt:videoId'?: string[];
-  title: string[];
-  published: string[];
-  link: { $: { href: string } }[];
-  author: { name: string[] }[];
-  'media:group'?: RssMediaGroup[];
+  'yt:videoId'?: string;
+  title?: string;
+  published?: string;
+  link?: RssAttr;
+  author?: { name?: string };
+  'media:group'?: RssMediaGroup;
 }
 
 interface RssFeed {
@@ -117,18 +119,21 @@ export class VideosService {
 
     try {
       const subscriptions = await this.subscriptionsService.getAll();
-      const results = await Promise.allSettled(
-        subscriptions.map((sub) => this.fetchRSSFeed(sub.channelId)),
-      );
 
       const allVideos: VideoDto[] = [];
-      for (const [i, result] of results.entries()) {
-        if (result.status === 'fulfilled') {
-          allVideos.push(...result.value);
-        } else {
-          this.logger.warn(
-            `Failed to fetch RSS for channel ${subscriptions[i]!.channelId}: ${result.reason}`,
-          );
+      for (let i = 0; i < subscriptions.length; i += FETCH_CONCURRENCY) {
+        const batch = subscriptions.slice(i, i + FETCH_CONCURRENCY);
+        const results = await Promise.allSettled(
+          batch.map((sub) => this.fetchRSSFeed(sub.channelId)),
+        );
+        for (const [j, result] of results.entries()) {
+          if (result.status === 'fulfilled') {
+            allVideos.push(...result.value);
+          } else {
+            this.logger.warn(
+              `Failed to fetch RSS for channel ${batch[j]!.channelId}: ${result.reason}`,
+            );
+          }
         }
       }
 
@@ -175,8 +180,6 @@ export class VideosService {
         }
       }
 
-      await this.pruneStaleVideos();
-
       const videos = await this.prisma.video.findMany({
         where: includeShorts ? undefined : { isShort: false },
         orderBy: { published: 'desc' },
@@ -188,27 +191,6 @@ export class VideosService {
     } finally {
       this.isRefreshing = false;
     }
-  }
-
-  private async pruneStaleVideos(): Promise<void> {
-    const staleAt = BigInt(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-    const [watchedRows, playlistRows] = await Promise.all([
-      this.prisma.watchHistory.findMany({ select: { videoId: true } }),
-      this.prisma.playlistVideo.findMany({ select: { videoId: true } }),
-    ]);
-
-    const protectedIds = [
-      ...watchedRows.map((r) => r.videoId),
-      ...playlistRows.map((r) => r.videoId),
-    ];
-
-    await this.prisma.video.deleteMany({
-      where: {
-        cachedAt: { lt: staleAt },
-        id: { notIn: protectedIds },
-      },
-    });
   }
 
   private async fetchRSSFeed(channelId: string): Promise<VideoDto[]> {
@@ -223,40 +205,38 @@ export class VideosService {
 
     try {
       const xmlData = await response.text();
-      const result = (await parseStringPromise(xmlData)) as RssFeed;
+      const result = xmlParser.parse(xmlData) as RssFeed;
 
       const videos: VideoDto[] = [];
       const entries = result?.feed?.entry ?? [];
 
       for (const entry of entries) {
-        const publishedDate = new Date(entry.published[0]);
-        const link = entry.link[0].$.href;
-        const isShort = link.includes('/shorts/');
-        const videoId = entry['yt:videoId']?.[0];
-
+        const videoId = entry['yt:videoId'];
         if (!videoId) continue;
 
-        const mediaGroup = entry['media:group']?.[0];
+        const link = entry.link?.href ?? '';
+        const isShort = link.includes('/shorts/');
+        const mediaGroup = entry['media:group'];
         const thumbnails = mediaGroup?.['media:thumbnail'];
         const thumbnailUrl =
-          thumbnails?.[thumbnails.length - 1]?.$.url ??
+          thumbnails?.[thumbnails.length - 1]?.url ??
           `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
 
-        const community = mediaGroup?.['media:community']?.[0];
-        const viewsStr = community?.['media:statistics']?.[0]?.$.views;
-        const likesStr = community?.['media:starRating']?.[0]?.$.count;
+        const community = mediaGroup?.['media:community'];
+        const viewsStr = community?.['media:statistics']?.views;
+        const likesStr = community?.['media:starRating']?.count;
 
         videos.push({
           videoId,
-          title: entry.title[0],
-          channel: entry.author[0].name[0],
+          title: entry.title ?? '',
+          channel: entry.author?.name ?? '',
           link,
-          published: publishedDate.toISOString(),
+          published: new Date(entry.published ?? 0).toISOString(),
           isShort,
           thumbnailUrl,
           viewCount: viewsStr ? parseInt(viewsStr, 10) : undefined,
           likeCount: likesStr ? parseInt(likesStr, 10) : undefined,
-          description: mediaGroup?.['media:description']?.[0],
+          description: mediaGroup?.['media:description'],
         });
       }
 
